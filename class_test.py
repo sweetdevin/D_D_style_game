@@ -92,4 +92,13 @@ class barbarian(creature):
 dreadclaw = murlock('dreadclaw')
 snagletooth = murlock('snagletooth')
 hulk = barbarian('hulk')
-dreadclaw.enter_combat(hulk)
+
+#saving characters experiment
+import pickle
+
+
+with open('character_db_2.py', 'wb') as file:
+    pickle.dump(hulk, file)
+    pickle.dump(dreadclaw, file)
+    
+
