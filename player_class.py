@@ -1,6 +1,6 @@
 from class_test import creature 
 from rooms import spawnnode
-
+from random import randint
 class player(creature):
     def __init__(self, name) -> None:
         super().__init__(name)
@@ -9,6 +9,9 @@ class player(creature):
                              'me': self.me, 'quit': self.quit, 'attack': self.enter_combat}
         self.health = 500
         self.active = False
+        #fix this first tomorrow
+        #self.attacks = self.attacks.update({'run': self.run,
+        #                                    'calm': self.calm}) 
     #basic player specific commands
     # a travel function to move the play    
     def traverse(self):
@@ -38,15 +41,16 @@ class player(creature):
     def quit(self):
         self.active = False
         print('so long and thanks for all the fish')
-    
+    #combat target aquisition ends by calling combat loop
     def enter_combat(self):
-        print(self.location.creatures)
-        target = input('attack what?')
-        if target not in self.location.creatures:
+        targets = [x for x in self.location.creatures.keys()]
+        print(targets)
+        target = input('attack what? \n')
+        if target not in targets:
             print('that target does not exist here')
             return
-        index = self.location.creatures.index(target)
-        self.combat_loop(self.location.creatures[index])
+        self.combat_loop(self.location.creatures[target])
+    # the combat loop
     def combat_loop(self, target):
         attacks = [x for x in self.attacks.keys()]
         print(attacks)
@@ -56,8 +60,10 @@ class player(creature):
         else:
             print(f'{self.name} is confused by your command and uses a basic attack')
             self.basic_attack(target)
-        npc_attack = randint(0, len(target.attacks.keys()) -1)
-        target.attacks[target.attacks.keys()[npc_attack]](self)
+        npc_attacks = [x for x in target.attacks.keys()]
+        npc_index = randint(0, len(npc_attacks) -1)
+        npc_attack = npc_attacks[npc_index]
+        target.attacks[npc_attack](self)
         if target.health <= 0: 
             print(f'{self.name} is victorious')
             return
@@ -65,6 +71,7 @@ class player(creature):
             print(f'{self.name} has died')
             return
         return self.combat_loop(target)
+
 
 # a basic play game loop
 def play_game():

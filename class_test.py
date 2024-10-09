@@ -32,7 +32,8 @@ class creature:
         return self.noise
     #combat function engages an npc in combat collect input and calls attacks
     #repeats until someone's health reaches 0
-    def enter_combat(self):
+    #stringed out while testing
+    """def enter_combat(self):
         print(self.location.creatures)
         target = input('attack what?')
         if target not in self.location.creatures:
@@ -58,6 +59,7 @@ class creature:
             print(f'{self.name} has died')
             return
         return self.combat_loop(target)
+    """
 #murlock subclass
 class murlock(creature):
     def __init__(self, name) -> None:
@@ -65,7 +67,8 @@ class murlock(creature):
         self.noise = 'blugbluglbuglbug'
         self.weapon = 'claws'
         self.mana = 25
-        self.attacks = {}
+        self.attacks = {'basic attack': self.basic_attack, 
+                        'bubble attack': self.bubble_atk}
     def speak(self):
         return f'blugblug {self.name} blugblug'
     #murlocks special attack
