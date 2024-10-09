@@ -10,8 +10,7 @@ class creature:
         self.atk_val = 10
         self.def_val = 10
         self.weapon = 'body'
-        self.attacks = [self.basic_attack]
-        self.attacks_str = ['basic attack']
+        self.attacks = {'basic attack': self.basic_attack}
     def __repr__(self):
         return f'name is {self.name} \n health = {self.health} \n mana = {self.mana}'
     #basic attack function
@@ -33,25 +32,34 @@ class creature:
         return self.noise
     #combat function engages an npc in combat collect input and calls attacks
     #repeats until someone's health reaches 0
-    def enter_combat(self, target):
-        print(f'choose your action \n {self.attacks_str}')
-        player_input = input('')
-        try:
-           index = self.attacks_str.index(player_input)
-        except ValueError:
-            print(f"in {self.name}'s confusion they use a basic attack")
-            index = 0
-        attack = self.attacks[index]
-        attack(target)
-        npc_attack = target.attacks[randint(0, len(target.attacks) - 1)]
-        npc_attack(self)
+    #stringed out while testing
+    """def enter_combat(self):
+        print(self.location.creatures)
+        target = input('attack what?')
+        if target not in self.location.creatures:
+            print('that target does not exist here')
+            return
+        index = self.location.creatures.index(target)
+        self.combat_loop(self.location.creatures[index])
+    def combat_loop(self, target):
+        attacks = [x for x in self.attacks.keys()]
+        print(attacks)
+        player_input = input('what action do you take? \n')
+        if player_input in attacks:
+           self.attacks[player_input](target)
+        else:
+            print(f'{self.name} is confused by your command and uses a basic attack')
+            self.basic_attack(target)
+        npc_attack = randint(0, len(target.attacks.keys()) -1)
+        target.attacks[target.attacks.keys()[npc_attack]](self)
         if target.health <= 0: 
             print(f'{self.name} is victorious')
             return
         if self.health <= 0:
             print(f'{self.name} has died')
             return
-        return self.enter_combat(target)
+        return self.combat_loop(target)
+    """
 #murlock subclass
 class murlock(creature):
     def __init__(self, name) -> None:
@@ -59,8 +67,8 @@ class murlock(creature):
         self.noise = 'blugbluglbuglbug'
         self.weapon = 'claws'
         self.mana = 25
-        self.attacks = [self.basic_attack, self.bubble_atk]
-        self.attacks_str = ['basic attack', 'bubble attack']
+        self.attacks = {'basic attack': self.basic_attack, 
+                        'bubble attack': self.bubble_atk}
     def speak(self):
         return f'blugblug {self.name} blugblug'
     #murlocks special attack
@@ -93,12 +101,14 @@ dreadclaw = murlock('dreadclaw')
 snagletooth = murlock('snagletooth')
 hulk = barbarian('hulk')
 
+
+
 #saving characters experiment
-import pickle
+#import pickle
 
 
-with open('character_db_2.py', 'wb') as file:
-    pickle.dump(hulk, file)
-    pickle.dump(dreadclaw, file)
-    
+#with open('character_db_2.pkl', 'wb') as file:
+#    pickle.dump(hulk, file)
+#    pickle.dump(dreadclaw, file)
+
 
