@@ -11,6 +11,7 @@ class creature:
         self.def_val = 10
         self.weapon = 'body'
         self.attacks = {'basic attack': self.basic_attack}
+        self.aggressive = False
     def __repr__(self):
         return f'name is {self.name} \n health = {self.health} \n mana = {self.mana}'
     #basic attack function

@@ -9,9 +9,9 @@ class player(creature):
                              'me': self.me, 'quit': self.quit, 'attack': self.enter_combat}
         self.health = 500
         self.active = False
-        #fix this first tomorrow
-        #self.attacks = self.attacks.update({'run': self.run,
-        #                                    'calm': self.calm}) 
+        self.in_combat = False
+        self.attacks = self.attacks | {'run': self.run,
+                                            'calm': self.calm}
     #basic player specific commands
     # a travel function to move the play    
     def traverse(self):
@@ -21,9 +21,13 @@ class player(creature):
         if direction in direction_list:
             self.location = self.location.exits[direction]
             self.look()
+            for value in self.location.creatures.values():
+                if value.aggressive == True:
+                    print(f'{value.name} attacks you')
+                    self.in_combat = True
+                    self.combat_loop(value)
             return
         else: print('cannot travel that way') 
-        return self.traverse()
     # a simple look around or location command
     def look(self):
         print(self.location.description)
@@ -44,14 +48,21 @@ class player(creature):
     #combat target aquisition ends by calling combat loop
     def enter_combat(self):
         targets = [x for x in self.location.creatures.keys()]
+        if len(targets) == 0:
+            print('there is nothing here to attack')
+            return 
         print(targets)
         target = input('attack what? \n')
         if target not in targets:
             print('that target does not exist here')
             return
+        self.in_combat = True
+        print(f'you attack {target}')
         self.combat_loop(self.location.creatures[target])
     # the combat loop
     def combat_loop(self, target):
+        if self.in_combat == False: 
+            return
         attacks = [x for x in self.attacks.keys()]
         print(attacks)
         player_input = input('what action do you take? \n')
@@ -60,6 +71,9 @@ class player(creature):
         else:
             print(f'{self.name} is confused by your command and uses a basic attack')
             self.basic_attack(target)
+        if self.in_combat == False:
+            return
+        target.aggressive = True
         npc_attacks = [x for x in target.attacks.keys()]
         npc_index = randint(0, len(npc_attacks) -1)
         npc_attack = npc_attacks[npc_index]
@@ -71,8 +85,18 @@ class player(creature):
             print(f'{self.name} has died')
             return
         return self.combat_loop(target)
-
-
+    # a run away command
+    def run(self, target):
+        self.in_combat = False
+        self.traverse()
+    # an end combat command
+    def calm(self, target):
+        chance = randint(0, 1)
+        if chance == 0:
+            print(f'{target.name} fails to calm down')
+        if chance == 1:
+            self.in_combat = False
+            print(f'{target.name} calms down')
 # a basic play game loop
 def play_game():
     play_name = input('what is your name? \n')
