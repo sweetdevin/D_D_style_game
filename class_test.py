@@ -12,6 +12,7 @@ class creature:
         self.weapon = 'body'
         self.attacks = {'basic attack': self.basic_attack}
         self.aggressive = False
+        self.items = {}
     def __repr__(self):
         return f'name is {self.name} \n health = {self.health} \n mana = {self.mana}'
     #basic attack function
@@ -31,6 +32,10 @@ class creature:
         return True
     def sound(self):
         return self.noise
+    # add_tiem function
+    def add_item(self, item_dict):
+        self.items = self.items | item_dict
+
     #combat function engages an npc in combat collect input and calls attacks
     #repeats until someone's health reaches 0
     #stringed out while testing
@@ -61,6 +66,13 @@ class creature:
             return
         return self.combat_loop(target)
     """
+class container():
+    def __init__(self, name, text) -> None:
+        self.name = name
+        self.text = text
+        self.contents = {}
+    def add_items(self, item_dict):
+        self.contents = self.contents | item_dict
 #murlock subclass
 class murlock(creature):
     def __init__(self, name) -> None:
@@ -99,7 +111,9 @@ class barbarian(creature):
 
 #testing code
 dreadclaw = murlock('dreadclaw')
+dreadclaw.add_item({'some item': 'some effect'})
 snagletooth = murlock('snagletooth')
+snagletooth.add_item({'some other item': 'some other effect'})
 hulk = barbarian('hulk')
 
 
