@@ -1,4 +1,4 @@
-from class_test import creature, container 
+from class_test import creature, container, item_class
 from rooms import spawnnode
 from random import randint
 
@@ -8,12 +8,13 @@ class player(creature):
         self.location = spawnnode
         self.basic_action = {'look' : self.look, 'travel': self.traverse,
                              'me': self.me, 'quit': self.quit, 'attack': self.enter_combat,
-                             'examine': self.examine}
+                             'examine': self.examine, 'take': self.take_item}
         self.health = 500
         self.active = False
         self.in_combat = False
         self.attacks = self.attacks | {'run': self.run,
                                             'calm': self.calm}
+        self.items = []
     #basic player specific commands
     # a travel function to move the play    
     def traverse(self):
@@ -46,6 +47,7 @@ class player(creature):
     # an in game self status check
     def me(self):
         print(self)
+        print(f'i am holding, {self.items}')
     # an exit for the game loop
     def quit(self):
         self.active = False
@@ -98,7 +100,7 @@ class player(creature):
             corpse = container(f'corpse of {target.name}', 'a bloody mangled corpse')
             corpse.add_items(target.items)
             self.location.remove_creature(target.name)
-            self.location.add_item({corpse.name:corpse})
+            self.location.add_item(corpse)
             return
         if self.health <= 0:
             print(f'{self.name} has died')
@@ -121,15 +123,27 @@ class player(creature):
             print(f'{target.name} calms down')
     # examine items and take items functions
     def examine(self):
-        items = [x for x in self.location.items]
+        items = [x.name for x in self.location.items]
         print(items)
         item_to_examine = input('examine what?')
-        item = self.location.items[item_to_examine]
-        print(item.name)
-        print(item.text)
-        if type(item) == container:
-            print('contains')
-            print(item.contents)
+        if item_to_examine in items:
+            index = [x.name for x in self.location.items].index(item_to_examine)
+            item = self.location.items[index]
+            print(item)
+            print(item.text)
+            if type(item) == container:
+                print('contains')
+                print([x for x in item.contents])
+        else: print("that item isn't here")
+    def take_item(self):
+        names = [x.name for x in self.location.items if type(x) == item_class]
+        print(names)
+        item = input('take what? \n')
+        if item in names:
+            index = [x.name for x in self.location.items].index(item)
+            self.items.append(self.location.items[index])
+        else: print('item is not here')
+
 # a basic play game loop
 def play_game():
     play_name = input('what is your name? \n')

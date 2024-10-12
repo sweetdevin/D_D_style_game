@@ -12,7 +12,7 @@ class creature:
         self.weapon = 'body'
         self.attacks = {'basic attack': self.basic_attack}
         self.aggressive = False
-        self.items = {}
+        self.items = []
     def __repr__(self):
         return f'name is {self.name} \n health = {self.health} \n mana = {self.mana}'
     #basic attack function
@@ -33,9 +33,8 @@ class creature:
     def sound(self):
         return self.noise
     # add_tiem function
-    def add_item(self, item_dict):
-        self.items = self.items | item_dict
-
+    def add_item(self, item):
+        self.items.append(item)
     #combat function engages an npc in combat collect input and calls attacks
     #repeats until someone's health reaches 0
     #stringed out while testing
@@ -66,10 +65,21 @@ class creature:
             return
         return self.combat_loop(target)
     """
-class container():
-    def __init__(self, name, text) -> None:
+# items class
+class item_class():
+    def __init__(self, name, text, stat = None, effect = None):
         self.name = name
         self.text = text
+        self.stat = stat
+        self.effect = effect
+    def __repr__(self) -> str:
+        return self.name
+    def add_effect(self, effect):
+        self.effect = effect
+# item subclass container
+class container(item_class):
+    def __init__(self, name, text):
+        super().__init__(name, text)
         self.contents = {}
     def add_items(self, item_dict):
         self.contents = self.contents | item_dict
@@ -111,9 +121,10 @@ class barbarian(creature):
 
 #testing code
 dreadclaw = murlock('dreadclaw')
-dreadclaw.add_item({'some item': 'some effect'})
+health_potion = item_class('health potion', 'a vial of stange red liquid', 'health', 50)
+dreadclaw.add_item(health_potion)
 snagletooth = murlock('snagletooth')
-snagletooth.add_item({'some other item': 'some other effect'})
+snagletooth.add_item(health_potion)
 hulk = barbarian('hulk')
 
 

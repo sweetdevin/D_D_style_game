@@ -1,4 +1,4 @@
-from class_test import snagletooth
+from class_test import snagletooth, health_potion
 from class_test import dreadclaw
 opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west":'east'}
 class roomnode:
@@ -6,7 +6,7 @@ class roomnode:
         self.description = description
         self.creatures = {}
         self.exits = {}
-        self.items = {}
+        self.items = []
     def add_exits(self, linking_node, direction):
         self.exits[direction] = linking_node
         op_dir = opposites[direction]
@@ -15,8 +15,8 @@ class roomnode:
         self.creatures[creature.name] = creature
     def remove_creature(self, creature_key):
         del self.creatures[creature_key]
-    def add_item(self, item_dict):
-        self.items = self.items | item_dict
+    def add_item(self, item_class):
+        self.items.append(item_class)
     def remove_item(self, item_key):
         del self.items[item_key]
 tower_g_text = 'you stand at the gates outside of a large tower'
@@ -33,4 +33,4 @@ spawnnode.add_exits(tower_g, 'east')
 spawnnode.add_creature(snagletooth)
 tower_g.add_exits(tower_1,'gates')
 tower_1.add_exits(tower_2,'up')
-
+spawnnode.add_item(health_potion)
