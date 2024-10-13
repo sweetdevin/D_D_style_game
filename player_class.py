@@ -8,7 +8,8 @@ class player(creature):
         self.location = spawnnode
         self.basic_action = {'look' : self.look, 'travel': self.traverse,
                              'me': self.me, 'quit': self.quit, 'attack': self.enter_combat,
-                             'examine': self.examine, 'take': self.take_item}
+                             'examine': self.examine, 'take': self.take_item,
+                             'use': self.use}
         self.health = 500
         self.active = False
         self.in_combat = False
@@ -98,7 +99,8 @@ class player(creature):
             self.in_combat = False
             target.aggressive = False
             corpse = container(f'corpse of {target.name}', 'a bloody mangled corpse')
-            corpse.add_items(target.items)
+            for item in target.items:
+                corpse.add_items(item)
             self.location.remove_creature(target.name)
             self.location.add_item(corpse)
             return
@@ -133,17 +135,32 @@ class player(creature):
             print(item.text)
             if type(item) == container:
                 print('contains')
-                print([x for x in item.contents])
+                print([x.name for x in item.contents])
         else: print("that item isn't here")
     def take_item(self):
         names = [x.name for x in self.location.items if type(x) == item_class]
         print(names)
         item = input('take what? \n')
         if item in names:
-            index = [x.name for x in self.location.items].index(item)
-            self.items.append(self.location.items[index])
+            index = names.index(item)
+            item_obj = self.location.items[index]
+            self.location.items.remove(item_obj)
+            self.items.append(item_obj)
+            item_obj.player_link(self)
         else: print('item is not here')
-
+    def use(self):
+        consumables = [x for x in self.items if type(x) == item_class]
+        if len(consumables) == 0:
+            print('you have no items')
+            return
+        consumables_names = [x.name for x in consumables]
+        print(consumables_names)
+        choice = input('use what?')
+        if choice in consumables_names:
+            index = consumables_names.index(choice)
+            item =self.items.pop(index)
+            item.use()
+        else: print("you don't have that item")
 # a basic play game loop
 def play_game():
     play_name = input('what is your name? \n')

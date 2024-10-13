@@ -72,17 +72,23 @@ class item_class():
         self.text = text
         self.stat = stat
         self.effect = effect
+        self.player = None
     def __repr__(self) -> str:
         return self.name
-    def add_effect(self, effect):
-        self.effect = effect
+    def player_link(self, player):
+        self.player = player
+    def use(self):
+        if self.stat == 'health':
+            self.player.health += self.effect
+        elif self.stat == 'mana':
+            self.player.mana += self.effect  
 # item subclass container
 class container(item_class):
     def __init__(self, name, text):
         super().__init__(name, text)
-        self.contents = {}
-    def add_items(self, item_dict):
-        self.contents = self.contents | item_dict
+        self.contents = []
+    def add_items(self, item_obj):
+        self.contents.append(item_obj)
 #murlock subclass
 class murlock(creature):
     def __init__(self, name) -> None:
