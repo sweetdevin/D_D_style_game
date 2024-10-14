@@ -1,7 +1,7 @@
-from class_test import creature, container, item_class
+from class_test import creature
 from rooms import spawnnode
 from random import randint
-
+from item_classes import item_class, consumable, container
 class player(creature):
     def __init__(self, name) -> None:
         super().__init__(name)
@@ -16,6 +16,7 @@ class player(creature):
         self.attacks = self.attacks | {'run': self.run,
                                             'calm': self.calm}
         self.items = []
+        self.consumables = []
     #basic player specific commands
     # a travel function to move the play    
     def traverse(self):
@@ -127,7 +128,7 @@ class player(creature):
     def examine(self):
         items = [x.name for x in self.location.items]
         print(items)
-        item_to_examine = input('examine what?')
+        item_to_examine = input('examine what? \n')
         if item_to_examine in items:
             index = [x.name for x in self.location.items].index(item_to_examine)
             item = self.location.items[index]
@@ -138,24 +139,32 @@ class player(creature):
                 print([x.name for x in item.contents])
         else: print("that item isn't here")
     def take_item(self):
-        names = [x.name for x in self.location.items if type(x) == item_class]
+        names = [x.name for x in self.location.items if type(x) != container]
         print(names)
         item = input('take what? \n')
         if item in names:
             index = names.index(item)
             item_obj = self.location.items[index]
             self.location.items.remove(item_obj)
-            self.items.append(item_obj)
             item_obj.player_link(self)
+            if type(item_obj) == consumable:
+                self.consumables.append(item_obj)
+            self.items.append(item_obj)
+            item_obj.use()
         else: print('item is not here')
+    def loot(self):
+        containers = [x for x in self.location.items if type(x) == container]
+        if len(containers) == 0:
+            print('no containers here')
+        
     def use(self):
-        consumables = [x for x in self.items if type(x) == item_class]
+        consumables = [x for x in self.consumables]
         if len(consumables) == 0:
             print('you have no items')
             return
         consumables_names = [x.name for x in consumables]
         print(consumables_names)
-        choice = input('use what?')
+        choice = input('use what? \n')
         if choice in consumables_names:
             index = consumables_names.index(choice)
             item =self.items.pop(index)

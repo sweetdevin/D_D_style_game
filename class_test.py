@@ -1,4 +1,5 @@
 from random import randint
+from item_classes import item_class, consumable, equipment
 # initial living creature class all player and 
 # npc will have this super class as of right now
 class creature:
@@ -64,8 +65,9 @@ class creature:
             print(f'{self.name} has died')
             return
         return self.combat_loop(target)
-    """
-# items class
+    
+# items class moving to it's own file
+
 class item_class():
     def __init__(self, name, text, stat = None, effect = None):
         self.name = name
@@ -89,6 +91,7 @@ class container(item_class):
         self.contents = []
     def add_items(self, item_obj):
         self.contents.append(item_obj)
+        """
 #murlock subclass
 class murlock(creature):
     def __init__(self, name) -> None:
@@ -127,10 +130,12 @@ class barbarian(creature):
 
 #testing code
 dreadclaw = murlock('dreadclaw')
-health_potion = item_class('health potion', 'a vial of stange red liquid', 'health', 50)
+ring_of_health = equipment('ring of health', 'a glowing red ring', 'health', 300)
+health_potion = consumable('health potion', 'a vial of a red bubbly liquid', 'health', 50)
 dreadclaw.add_item(health_potion)
 snagletooth = murlock('snagletooth')
 snagletooth.add_item(health_potion)
+snagletooth.add_item(ring_of_health)
 hulk = barbarian('hulk')
 
 
