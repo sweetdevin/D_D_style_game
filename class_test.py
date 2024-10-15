@@ -1,5 +1,5 @@
 from random import randint
-from item_classes import item_class, consumable, equipment
+from item_classes import consumable, equipment
 # initial living creature class all player and 
 # npc will have this super class as of right now
 class creature:

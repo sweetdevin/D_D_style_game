@@ -1,7 +1,23 @@
 from class_test import creature
 from rooms import spawnnode
 from random import randint
-from item_classes import item_class, consumable, container
+from item_classes import item_class, consumable, container, equipment
+
+def col_n_validate(location, func_name_str, fail_str, **kwargs):
+    names = [x.name for x in location]
+    if 'filter' in kwargs:
+        names = [x.name for x in location if type(x) == kwargs['filter']]
+        if 'bang' in kwargs:
+            names = [x.name for x in location if type(x) != kwargs['filter']]
+    if len(names) == 0:
+        return False, "you can't do that here"    
+    print(names)
+    player_input = input(f'{func_name_str} what? \n')
+    if player_input in names:
+        index = [x.name for x in location].index(player_input)
+        return True, index
+    return False, f'that {fail_str} is not here'
+
 class player(creature):
     def __init__(self, name) -> None:
         super().__init__(name)
@@ -49,7 +65,8 @@ class player(creature):
     # an in game self status check
     def me(self):
         print(self)
-        print(f'i am holding, {self.items}')
+        print(f'equipment, {self.items}')
+        print(f'consumables, {self.consumables}')
     # an exit for the game loop
     def quit(self):
         self.active = False
@@ -126,50 +143,66 @@ class player(creature):
             print(f'{target.name} calms down')
     # examine items and take items functions
     def examine(self):
-        items = [x.name for x in self.location.items]
+        success, value = col_n_validate(self.location.items, 'examine', 'item')
+        """items = [x.name for x in self.location.items]
         print(items)
-        item_to_examine = input('examine what? \n')
-        if item_to_examine in items:
-            index = [x.name for x in self.location.items].index(item_to_examine)
-            item = self.location.items[index]
-            print(item)
-            print(item.text)
-            if type(item) == container:
+        item_to_examine = input('examine what? \n')"""
+        if success:
+            item_obj = self.location.items[value]
+            print(item_obj)
+            print(item_obj.text)
+            if type(item_obj) == container:
                 print('contains')
-                print([x.name for x in item.contents])
-        else: print("that item isn't here")
+                print([x.name for x in item_obj.contents])
+        else: print(value)
     def take_item(self):
+        success, value = col_n_validate(self.location.items,'take', 'item', filter = container, bang = True)
+        """
         names = [x.name for x in self.location.items if type(x) != container]
         print(names)
-        item = input('take what? \n')
-        if item in names:
-            index = names.index(item)
-            item_obj = self.location.items[index]
+        item = input('take what? \n')"""
+        if success:
+            item_obj = self.location.items[value]
             self.location.items.remove(item_obj)
             item_obj.player_link(self)
             if type(item_obj) == consumable:
                 self.consumables.append(item_obj)
-            self.items.append(item_obj)
-            item_obj.use()
-        else: print('item is not here')
+            if type(item_obj) == equipment:
+                self.items.append(item_obj)
+                item_obj.use()
+        else: print(value)
     def loot(self):
-        containers = [x for x in self.location.items if type(x) == container]
+        success, value =col_n_validate(self.location.items, 'loot', 'containers', filter=container)
+        """containers = [x.name for x in self.location.items if type(x) == container]
         if len(containers) == 0:
             print('no containers here')
-        
+            return
+        print(containers)
+        cont_str = input('loot what? \n') """
+        if success:
+            cont_obj = self.location.items[value]
+            for item in cont_obj.contents:
+                if type(item) == equipment:
+                    self.items.append(item)
+                    self.items[-1].use()
+                if type(item) == consumable:
+                    self.consumables.append(item)
+                cont_obj.contents.remove(item)
+        else: print(value)
     def use(self):
+        success, value = col_n_validate(self.consumables, 'use', 'item')
+        """
         consumables = [x for x in self.consumables]
         if len(consumables) == 0:
             print('you have no items')
             return
         consumables_names = [x.name for x in consumables]
         print(consumables_names)
-        choice = input('use what? \n')
-        if choice in consumables_names:
-            index = consumables_names.index(choice)
-            item =self.items.pop(index)
+        choice = input('use what? \n') """
+        if success:
+            item =self.items.pop(value)
             item.use()
-        else: print("you don't have that item")
+        else: print(value)
 # a basic play game loop
 def play_game():
     play_name = input('what is your name? \n')
