@@ -2,20 +2,23 @@ from class_test import creature
 from rooms import spawnnode
 from random import randint
 from item_classes import item_class, consumable, container, equipment
-
+# collect and validate player inputs function 
 def col_n_validate(location, func_name_str, fail_str, **kwargs):
     names = [x.name for x in location]
     if 'filter' in kwargs:
         names = [x.name for x in location if type(x) == kwargs['filter']]
         if 'bang' in kwargs:
             names = [x.name for x in location if type(x) != kwargs['filter']]
+    #validates there is an obj to act on, returns if fails
     if len(names) == 0:
         return False, "you can't do that here"    
     print(names)
     player_input = input(f'{func_name_str} what? \n')
+    #validate player input is vailid returns index of input if true
     if player_input in names:
         index = [x.name for x in location].index(player_input)
         return True, index
+    #return fail
     return False, f'that {fail_str} is not here'
 
 class player(creature):
@@ -36,21 +39,24 @@ class player(creature):
     #basic player specific commands
     # a travel function to move the play    
     def traverse(self):
+        #print travel directions, collect input
         direction_list = [x for x in self.location.exits.keys()]
         print(direction_list)
         direction = input('which way? \n')
+        #validate input, change location, call look
         if direction in direction_list:
             self.location = self.location.exits[direction]
             self.look()
+            #check for aggressive mobs, start combat if true
             for value in self.location.creatures.values():
                 if value.aggressive == True:
                     print(f'{value.name} attacks you')
                     self.in_combat = True
                     self.combat_loop(value)
-            return
         else: print('cannot travel that way') 
     # a simple look around or location command
     def look(self):
+        #print room text, room contents.
         print(self.location.description)
         exits = [x for x in self.location.exits.keys()]
         print(f'obvious exits are {exits}')
@@ -113,6 +119,8 @@ class player(creature):
         target.attacks[npc_attack](self)
         #health check
         if target.health <= 0: 
+            #victory text, exit combat, make corpse from dead mob
+            # remove mob and add corpse to room
             print(f'{self.name} is victorious')
             self.in_combat = False
             target.aggressive = False
@@ -123,6 +131,7 @@ class player(creature):
             self.location.add_item(corpse)
             return
         if self.health <= 0:
+            #player death... needs to be expaned. have to figure out death.
             print(f'{self.name} has died')
             self.in_combat = False
             target.aggressive = False
@@ -141,27 +150,37 @@ class player(creature):
             self.in_combat = False
             target.aggressive = False
             print(f'{target.name} calms down')
-    # examine items and take items functions
+    # examine items function
     def examine(self):
+        #col and val fun returns either success and index or fail and return string
         success, value = col_n_validate(self.location.items, 'examine', 'item')
         """items = [x.name for x in self.location.items]
         print(items)
         item_to_examine = input('examine what? \n')"""
         if success:
+            # selects item obj and print name and text
             item_obj = self.location.items[value]
             print(item_obj)
             print(item_obj.text)
             if type(item_obj) == container:
+                # if item_obj is a container type print contents
                 print('contains')
-                print([x.name for x in item_obj.contents])
+                if len(item_obj.contents) == 0:
+                    print('nothing')
+                else: print([x.name for x in item_obj.contents])
+        # print value if col and val fails
         else: print(value)
+    # take item function    
     def take_item(self):
+        # col and val function
         success, value = col_n_validate(self.location.items,'take', 'item', filter = container, bang = True)
         """
         names = [x.name for x in self.location.items if type(x) != container]
         print(names)
         item = input('take what? \n')"""
         if success:
+            # if success of col and val, select item obj, remove from room
+            # add to player inventory, link item obj to player
             item_obj = self.location.items[value]
             self.location.items.remove(item_obj)
             item_obj.player_link(self)
@@ -170,8 +189,11 @@ class player(creature):
             if type(item_obj) == equipment:
                 self.items.append(item_obj)
                 item_obj.use()
+        # if col and val fails print fail string
         else: print(value)
+    # loot container function
     def loot(self):
+        # col and val function
         success, value =col_n_validate(self.location.items, 'loot', 'containers', filter=container)
         """containers = [x.name for x in self.location.items if type(x) == container]
         if len(containers) == 0:
@@ -180,6 +202,8 @@ class player(creature):
         print(containers)
         cont_str = input('loot what? \n') """
         if success:
+            # if success, take all from cont obj, add each item to player,
+            # link items, remove item from container
             cont_obj = self.location.items[value]
             for item in cont_obj.contents:
                 if type(item) == equipment:
@@ -188,8 +212,11 @@ class player(creature):
                 if type(item) == consumable:
                     self.consumables.append(item)
                 cont_obj.contents.remove(item)
+        # if success fails print fail string
         else: print(value)
+    # use item function 
     def use(self):
+        # col and val function
         success, value = col_n_validate(self.consumables, 'use', 'item')
         """
         consumables = [x for x in self.consumables]
