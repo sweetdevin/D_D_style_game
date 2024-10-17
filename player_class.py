@@ -28,7 +28,7 @@ class player(creature):
         self.basic_action = {'look' : self.look, 'travel': self.traverse,
                              'me': self.me, 'quit': self.quit, 'attack': self.enter_combat,
                              'examine': self.examine, 'take': self.take_item,
-                             'use': self.use}
+                             'use': self.use, 'loot': self.loot}
         self.health = 500
         self.active = False
         self.in_combat = False
@@ -48,11 +48,12 @@ class player(creature):
             self.location = self.location.exits[direction]
             self.look()
             #check for aggressive mobs, start combat if true
-            for value in self.location.creatures.values():
-                if value.aggressive == True:
-                    print(f'{value.name} attacks you')
-                    self.in_combat = True
-                    self.combat_loop(value)
+            for value in self.location.contents:
+                if type(value).__bases__[0] == creature:
+                    if value.aggressive == True:
+                        print(f'{value.name} attacks you')
+                        self.in_combat = True
+                        self.combat_loop(value)
         else: print('cannot travel that way') 
     # a simple look around or location command
     def look(self):
@@ -60,12 +61,14 @@ class player(creature):
         print(self.location.description)
         exits = [x for x in self.location.exits.keys()]
         print(f'obvious exits are {exits}')
-        if self.location.creatures:
-            for x in self.location.creatures:
+        creature_names = [x.name for x in self.location.contents if type(x).__bases__[-1] == creature]
+        if len(creature_names) > 0:    
+            for x in creature_names:
                 print(f'creature - {x}')
         else: print('no creatures')
-        if self.location.items:
-            for x in self.location.items:
+        item_names = [x.name for x in self.location.contents if type(x).__bases__[-1] == item_class]
+        if len(item_names) > 0:
+            for x in item_names:
                 print(f'item - {x}')
         else: print('no items')        
     # an in game self status check
@@ -80,7 +83,7 @@ class player(creature):
     #combat target aquisition ends by calling combat loop
     def enter_combat(self):
         #print targets
-        targets = [x for x in self.location.creatures.keys()]
+        targets = [x.name for x in self.location.contents if type(x).__bases__[-1] == creature]
         if len(targets) == 0:
             print('there is nothing here to attack')
             return 
@@ -92,7 +95,8 @@ class player(creature):
             return
         self.in_combat = True
         print(f'you attack {target}')
-        self.combat_loop(self.location.creatures[target])
+        target_index = [x.name for x in self.location.contents].index(target)
+        self.combat_loop(self.location.contents[target_index])
     # the combat loop
     def combat_loop(self, target):
         # turn target agressive
@@ -127,7 +131,7 @@ class player(creature):
             corpse = container(f'corpse of {target.name}', 'a bloody mangled corpse')
             for item in target.items:
                 corpse.add_items(item)
-            self.location.remove_creature(target.name)
+            self.location.remove_item(target)
             self.location.add_item(corpse)
             return
         if self.health <= 0:
@@ -153,13 +157,13 @@ class player(creature):
     # examine items function
     def examine(self):
         #col and val fun returns either success and index or fail and return string
-        success, value = col_n_validate(self.location.items, 'examine', 'item')
+        success, value = col_n_validate(self.location.contents, 'examine', 'item')
         """items = [x.name for x in self.location.items]
         print(items)
         item_to_examine = input('examine what? \n')"""
         if success:
             # selects item obj and print name and text
-            item_obj = self.location.items[value]
+            item_obj = self.location.contents[value]
             print(item_obj)
             print(item_obj.text)
             if type(item_obj) == container:
@@ -173,7 +177,7 @@ class player(creature):
     # take item function    
     def take_item(self):
         # col and val function
-        success, value = col_n_validate(self.location.items,'take', 'item', filter = container, bang = True)
+        success, value = col_n_validate(self.location.contents,'take', 'item', filter = creature, bang = True)
         """
         names = [x.name for x in self.location.items if type(x) != container]
         print(names)
@@ -181,8 +185,8 @@ class player(creature):
         if success:
             # if success of col and val, select item obj, remove from room
             # add to player inventory, link item obj to player
-            item_obj = self.location.items[value]
-            self.location.items.remove(item_obj)
+            item_obj = self.location.contents[value]
+            self.location.contents.remove(item_obj)
             item_obj.player_link(self)
             if type(item_obj) == consumable:
                 self.consumables.append(item_obj)
@@ -194,7 +198,7 @@ class player(creature):
     # loot container function
     def loot(self):
         # col and val function
-        success, value =col_n_validate(self.location.items, 'loot', 'containers', filter=container)
+        success, value =col_n_validate(self.location.contents, 'loot', 'containers', filter=container)
         """containers = [x.name for x in self.location.items if type(x) == container]
         if len(containers) == 0:
             print('no containers here')
@@ -204,8 +208,9 @@ class player(creature):
         if success:
             # if success, take all from cont obj, add each item to player,
             # link items, remove item from container
-            cont_obj = self.location.items[value]
-            for item in cont_obj.contents:
+            cont_obj = self.location.contents[value]
+            for item in [x for x in cont_obj.contents]:
+                item.player_link(self)
                 if type(item) == equipment:
                     self.items.append(item)
                     self.items[-1].use()
@@ -227,7 +232,7 @@ class player(creature):
         print(consumables_names)
         choice = input('use what? \n') """
         if success:
-            item =self.items.pop(value)
+            item = self.consumables.pop(value)
             item.use()
         else: print(value)
 # a basic play game loop

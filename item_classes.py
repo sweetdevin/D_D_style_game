@@ -21,9 +21,14 @@ class equipment(item_class):
         elif self.stat == 'mana':
             self.player.mana += self.effect    
 # consumable subclass
-class consumable(equipment):
+class consumable(item_class):
     def __init__(self, name, text, stat=None, effect=None):
         super().__init__(name, text, stat, effect) 
+    def use(self):
+        if self.stat == 'health':
+            self.player.health += self.effect
+        elif self.stat == 'mana':
+            self.player.mana += self.effect    
 # item subclass container
 class container(item_class):
     def __init__(self, name, text):

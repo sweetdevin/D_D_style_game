@@ -5,7 +5,6 @@ from item_classes import consumable, equipment
 class creature:
     def __init__(self, name,) -> None:
         self.name = name
-        self.noise = 'uggh'
         self.health = 100
         self.mana = 0
         self.atk_val = 10
@@ -31,8 +30,6 @@ class creature:
             self.basic_attack(target)
             return False
         return True
-    def sound(self):
-        return self.noise
     # add_tiem function
     def add_item(self, item):
         self.items.append(item)
@@ -93,10 +90,11 @@ class container(item_class):
         self.contents.append(item_obj)
         """
 #murlock subclass
+murlock_text = "A scaley frog-like humanoid walking upright with thin limbs and an enormous mouth."
 class murlock(creature):
-    def __init__(self, name) -> None:
+    def __init__(self, name, text) -> None:
         super().__init__(name)
-        self.noise = 'blugbluglbuglbug'
+        self.text = text
         self.weapon = 'claws'
         self.mana = 25
         self.attacks = {'basic attack': self.basic_attack, 
@@ -118,8 +116,7 @@ class barbarian(creature):
         self.noise = 'AAARRRGGGGHHHH!!!'
         self.weapon = 'club'
         self.mana = 15
-        self.attacks = [self.basic_attack, self.leaping_smash]
-        self.attacks_str = ['basic attack', 'leaping attack']
+        self.attacks = self.attacks | {'leaping smash':self.leaping_smash}
     #barbarian special attacks
     def leaping_smash(self, target, cost = 5):
         if self.mana_check(target, cost) == True:
@@ -129,11 +126,11 @@ class barbarian(creature):
             print(f'{self.name} leaps into the air and smashes his club down on {target.name} for {damage} damage')
 
 #testing code
-dreadclaw = murlock('dreadclaw')
+dreadclaw = murlock('dreadclaw', murlock_text + " this murlock has massive claws.")
 ring_of_health = equipment('ring of health', 'a glowing red ring', 'health', 300)
 health_potion = consumable('health potion', 'a vial of a red bubbly liquid', 'health', 50)
 dreadclaw.add_item(health_potion)
-snagletooth = murlock('snagletooth')
+snagletooth = murlock('snagletooth', murlock_text + " This murlock has long snarly teeth.")
 snagletooth.add_item(health_potion)
 snagletooth.add_item(ring_of_health)
 hulk = barbarian('hulk')
