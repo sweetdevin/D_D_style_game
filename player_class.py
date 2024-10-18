@@ -3,13 +3,11 @@ from rooms import spawnnode
 from random import randint
 from item_classes import item_class, consumable, container, equipment
 # collect and validate player inputs function 
-def col_n_validate(location, func_name_str, fail_str, **kwargs):
+def col_n_validate(location, func_name_str, fail_str, *args):
+    # filters options if needed args are class types to include
     names = [x.name for x in location]
-    if 'filter' in kwargs:
-        names = [x.name for x in location if type(x) == kwargs['filter']]
-        if 'bang' in kwargs:
-            names = [x.name for x in location if type(x) != kwargs['filter']]
-    #validates there is an obj to act on, returns if fails
+    if args:
+        names = [x.name for x in location if type(x) in args]
     if len(names) == 0:
         return False, "you can't do that here"    
     print(names)
@@ -32,8 +30,8 @@ class player(creature):
         self.health = 500
         self.active = False
         self.in_combat = False
-        self.attacks = self.attacks | {'run': self.run,
-                                            'calm': self.calm}
+        self.attacks = self.attacks | {'run': self.run, 'calm': self.calm,
+                                       'dev touch': self.dev_touch}
         self.items = []
         self.consumables = []
     #basic player specific commands
@@ -61,12 +59,12 @@ class player(creature):
         print(self.location.description)
         exits = [x for x in self.location.exits.keys()]
         print(f'obvious exits are {exits}')
-        creature_names = [x.name for x in self.location.contents if type(x).__bases__[-1] == creature]
+        creature_names = [x.name for x in self.location.contents if type(x).__bases__[0] == creature]
         if len(creature_names) > 0:    
             for x in creature_names:
                 print(f'creature - {x}')
         else: print('no creatures')
-        item_names = [x.name for x in self.location.contents if type(x).__bases__[-1] == item_class]
+        item_names = [x.name for x in self.location.contents if type(x).__bases__[0] == item_class]
         if len(item_names) > 0:
             for x in item_names:
                 print(f'item - {x}')
@@ -83,7 +81,7 @@ class player(creature):
     #combat target aquisition ends by calling combat loop
     def enter_combat(self):
         #print targets
-        targets = [x.name for x in self.location.contents if type(x).__bases__[-1] == creature]
+        targets = [x.name for x in self.location.contents if type(x).__bases__[0] == creature]
         if len(targets) == 0:
             print('there is nothing here to attack')
             return 
@@ -154,13 +152,15 @@ class player(creature):
             self.in_combat = False
             target.aggressive = False
             print(f'{target.name} calms down')
+    # special developers spell to instakill
+    def dev_touch(self, target):
+        print(f'with godlike powers {self.name}, points at {target.name} and says die')
+        target.health = 0
+
     # examine items function
     def examine(self):
         #col and val fun returns either success and index or fail and return string
         success, value = col_n_validate(self.location.contents, 'examine', 'item')
-        """items = [x.name for x in self.location.items]
-        print(items)
-        item_to_examine = input('examine what? \n')"""
         if success:
             # selects item obj and print name and text
             item_obj = self.location.contents[value]
@@ -177,11 +177,7 @@ class player(creature):
     # take item function    
     def take_item(self):
         # col and val function
-        success, value = col_n_validate(self.location.contents,'take', 'item', filter = creature, bang = True)
-        """
-        names = [x.name for x in self.location.items if type(x) != container]
-        print(names)
-        item = input('take what? \n')"""
+        success, value = col_n_validate(self.location.contents,'take', 'item', consumable, equipment)
         if success:
             # if success of col and val, select item obj, remove from room
             # add to player inventory, link item obj to player
@@ -198,13 +194,7 @@ class player(creature):
     # loot container function
     def loot(self):
         # col and val function
-        success, value =col_n_validate(self.location.contents, 'loot', 'containers', filter=container)
-        """containers = [x.name for x in self.location.items if type(x) == container]
-        if len(containers) == 0:
-            print('no containers here')
-            return
-        print(containers)
-        cont_str = input('loot what? \n') """
+        success, value =col_n_validate(self.location.contents, 'loot', 'containers', container)
         if success:
             # if success, take all from cont obj, add each item to player,
             # link items, remove item from container
@@ -223,14 +213,6 @@ class player(creature):
     def use(self):
         # col and val function
         success, value = col_n_validate(self.consumables, 'use', 'item')
-        """
-        consumables = [x for x in self.consumables]
-        if len(consumables) == 0:
-            print('you have no items')
-            return
-        consumables_names = [x.name for x in consumables]
-        print(consumables_names)
-        choice = input('use what? \n') """
         if success:
             item = self.consumables.pop(value)
             item.use()
