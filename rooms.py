@@ -4,33 +4,28 @@ opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west"
 class roomnode:
     def __init__(self, description):
         self.description = description
-        self.creatures = {}
         self.exits = {}
-        self.items = []
+        self.contents = []
     def add_exits(self, linking_node, direction):
         self.exits[direction] = linking_node
         op_dir = opposites[direction]
         linking_node.exits[op_dir] = self
-    def add_creature(self, creature):
-        self.creatures[creature.name] = creature
-    def remove_creature(self, creature_key):
-        del self.creatures[creature_key]
     def add_item(self, item_class):
-        self.items.append(item_class)
+        self.contents.append(item_class)
     def remove_item(self, item_key):
-        del self.items[item_key]
+        self.contents.remove(item_key)
 tower_g_text = 'you stand at the gates outside of a large tower'
 tower_g =roomnode(tower_g_text)
 tower_1_text = "you stand on the ground floor of a large stone tower"
 tower_1 = roomnode(tower_1_text)
-tower_1.add_creature(snagletooth)
+tower_1.add_item(snagletooth)
 tower_2_text = 'you stand on the second floor of a large stone tower'
 tower_2 = roomnode(tower_2_text)
-tower_2.add_creature(dreadclaw)
+tower_2.add_item(dreadclaw)
 spawnnode_text = "a calm field with a large stone tower in the distance"
 spawnnode = roomnode(spawnnode_text)
 spawnnode.add_exits(tower_g, 'east')
-spawnnode.add_creature(snagletooth)
+spawnnode.add_item(snagletooth)
 tower_g.add_exits(tower_1,'gates')
 tower_1.add_exits(tower_2,'up')
 spawnnode.add_item(health_potion)
