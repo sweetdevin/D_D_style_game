@@ -3,18 +3,21 @@ from rooms import spawnnode
 from random import randint
 from item_classes import item_class, consumable, container, equipment
 # collect and validate player inputs function 
-def col_n_validate(location, func_name_str, fail_str, *args):
+def col_n_validate(location, func_name_str, fail_str, target = None, *args):
     # filters options if needed args are class types to include
+
     names = [x.name for x in location]
     if args:
         names = [x.name for x in location if type(x) in args]
-    if len(names) == 0:
-        return False, "you can't do that here"    
-    print(names)
-    player_input = input(f'{func_name_str} what? \n')
+    if target == None:
+        if len(names) == 0:
+            return False, "you can't do that here"    
+        print(names)
+        target = input(f'{func_name_str} what? \n')
     #validate player input is vailid returns index of input if true
-    if player_input in names:
-        index = [x.name for x in location].index(player_input)
+    print(target)
+    if target in names:
+        index = [x.name for x in location].index(target)
         return True, index
     #return fail
     return False, f'that {fail_str} is not here'
@@ -23,10 +26,11 @@ class player(creature):
     def __init__(self, name) -> None:
         super().__init__(name)
         self.location = spawnnode
-        self.basic_action = {'look' : self.look, 'travel': self.traverse,
-                             'me': self.me, 'quit': self.quit, 'attack': self.enter_combat,
-                             'examine': self.examine, 'take': self.take_item,
-                             'use': self.use, 'loot': self.loot}
+        self.basic_action = {'look' : [self.look, 'look around your current room'], 'travel': [self.traverse, 'travel to another room'],
+                             'me': [self.me,'examine yourself and what you are carrying'], 'quit': [self.quit, 'quits the game'], 
+                             'attack': [self.enter_combat, 'attacks an enemy'], 'examine': [self.examine, 'loot at objects in the room'], 
+                             'take' : [self.take_item, 'take an item from the room'], 'use': [self.use, 'use an item from  your inventory'],
+                               'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu']}
         self.health = 500
         self.active = False
         self.in_combat = False
@@ -35,15 +39,23 @@ class player(creature):
         self.items = []
         self.consumables = []
     #basic player specific commands
+    def help(self, target=None):
+        print([x for x in self.basic_action.keys()])
+        detail = input("type a command for more details or exit to leave this menu \n")
+        if detail == 'exit': return
+        print(self.basic_action[detail][1])
+        return self.help()  
+
     # a travel function to move the play    
-    def traverse(self):
+    def traverse(self, target=None):
         #print travel directions, collect input
         direction_list = [x for x in self.location.exits.keys()]
-        print(direction_list)
-        direction = input('which way? \n')
+        if target not in direction_list:
+            print(direction_list)
+            target = input('which way? \n')
         #validate input, change location, call look
-        if direction in direction_list:
-            self.location = self.location.exits[direction]
+        if target in direction_list:
+            self.location = self.location.exits[target]
             self.look()
             #check for aggressive mobs, start combat if true
             for value in self.location.contents:
@@ -54,7 +66,7 @@ class player(creature):
                         self.combat_loop(value)
         else: print('cannot travel that way') 
     # a simple look around or location command
-    def look(self):
+    def look(self, *args):
         #print room text, room contents.
         print(self.location.description)
         exits = [x for x in self.location.exits.keys()]
@@ -70,24 +82,25 @@ class player(creature):
                 print(f'item - {x}')
         else: print('no items')        
     # an in game self status check
-    def me(self):
+    def me(self, *args):
         print(self)
         print(f'equipment, {self.items}')
         print(f'consumables, {self.consumables}')
     # an exit for the game loop
-    def quit(self):
+    def quit(self, *args):
         self.active = False
         print('so long and thanks for all the fish')
     #combat target aquisition ends by calling combat loop
-    def enter_combat(self):
+    def enter_combat(self, target = None):
         #print targets
         targets = [x.name for x in self.location.contents if type(x).__bases__[0] == creature]
-        if len(targets) == 0:
-            print('there is nothing here to attack')
-            return 
-        print(targets)
+        if target == None:
+            if len(targets) == 0:
+                print('there is nothing here to attack')
+                return 
+            print(targets)
         #select and validate targets
-        target = input('attack what? \n')
+            target = input('attack what? \n')
         if target not in targets:
             print('that target does not exist here')
             return
@@ -158,9 +171,9 @@ class player(creature):
         target.health = 0
 
     # examine items function
-    def examine(self):
+    def examine(self, target = None):
         #col and val fun returns either success and index or fail and return string
-        success, value = col_n_validate(self.location.contents, 'examine', 'item')
+        success, value = col_n_validate(self.location.contents, 'examine', 'item', target)
         if success:
             # selects item obj and print name and text
             item_obj = self.location.contents[value]
@@ -175,9 +188,9 @@ class player(creature):
         # print value if col and val fails
         else: print(value)
     # take item function    
-    def take_item(self):
+    def take_item(self, target = None):
         # col and val function
-        success, value = col_n_validate(self.location.contents,'take', 'item', consumable, equipment)
+        success, value = col_n_validate(self.location.contents,'take', 'item', target, consumable, equipment)
         if success:
             # if success of col and val, select item obj, remove from room
             # add to player inventory, link item obj to player
@@ -192,9 +205,9 @@ class player(creature):
         # if col and val fails print fail string
         else: print(value)
     # loot container function
-    def loot(self):
+    def loot(self, target = None):
         # col and val function
-        success, value =col_n_validate(self.location.contents, 'loot', 'containers', container)
+        success, value =col_n_validate(self.location.contents, 'loot', 'containers', target, container)
         if success:
             # if success, take all from cont obj, add each item to player,
             # link items, remove item from container
@@ -210,31 +223,12 @@ class player(creature):
         # if success fails print fail string
         else: print(value)
     # use item function 
-    def use(self):
+    def use(self, target):
         # col and val function
-        success, value = col_n_validate(self.consumables, 'use', 'item')
+        success, value = col_n_validate(self.consumables, 'use', 'item', target)
         if success:
             item = self.consumables.pop(value)
             item.use()
         else: print(value)
 # a basic play game loop
-def play_game():
-    play_name = input('what is your name? \n')
-    character = player(play_name)
-    character.active = True
-    game_loop(character)
-def game_loop(player):
-    print(f'''you wake up suddenly in a new place and new time.
-          with no memories of your past, only your name {player.name}''')
-    player.look()
-    while player.active == True:
-        print('what action do you take?')
-        actions = [x for x in player.basic_action.keys()]
-        print(actions)
-        user_action = input('')
-        if user_action in actions:
-            player.basic_action[user_action]()
-        else: print('please select an action')
 
-#proof of concept test functions
-play_game()

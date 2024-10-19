@@ -22,7 +22,10 @@ tower_1.add_item(snagletooth)
 tower_2_text = 'you stand on the second floor of a large stone tower'
 tower_2 = roomnode(tower_2_text)
 tower_2.add_item(dreadclaw)
-spawnnode_text = "a calm field with a large stone tower in the distance"
+spawnnode_text = """a calm field with a large stone tower to the east.  
+The calm fields turn to marshlands to the west. 
+There is a large painted wood sign that reads 
+'type "help" for a list of basic commands'"""
 spawnnode = roomnode(spawnnode_text)
 spawnnode.add_exits(tower_g, 'east')
 spawnnode.add_item(snagletooth)
