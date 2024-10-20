@@ -14,30 +14,35 @@ def col_n_validate(location, func_name_str, fail_str, target = None, *args):
             return False, "you can't do that here"    
         print(names)
         target = input(f'{func_name_str} what? \n')
-    #validate player input is vailid returns index of input if true
+    #validate player input is valid returns index of input if true
     print(target)
     if target in names:
         index = [x.name for x in location].index(target)
         return True, index
     #return fail
     return False, f'that {fail_str} is not here'
-
+player_text =  'yourself, look in a mirror'
 class player(creature):
-    def __init__(self, name) -> None:
-        super().__init__(name)
+    def __init__(self, name, text=player_text, level=1) -> None:
+        super().__init__(name, text, level)
+        self.stats = {'str':self.level *3, 'agi':self.level *3, 'int':self.level *3}
         self.location = spawnnode
         self.basic_action = {'look' : [self.look, 'look around your current room'], 'travel': [self.traverse, 'travel to another room'],
                              'me': [self.me,'examine yourself and what you are carrying'], 'quit': [self.quit, 'quits the game'], 
                              'attack': [self.enter_combat, 'attacks an enemy'], 'examine': [self.examine, 'loot at objects in the room'], 
                              'take' : [self.take_item, 'take an item from the room'], 'use': [self.use, 'use an item from  your inventory'],
                                'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu']}
-        self.health = 500
         self.active = False
         self.in_combat = False
         self.attacks = self.attacks | {'run': self.run, 'calm': self.calm,
                                        'dev touch': self.dev_touch}
-        self.items = []
         self.consumables = []
+        self.experience = 0
+    # level up function
+    def level_up(self, target=None):
+        if self.experience >= 100:
+            self.experience -= 100
+            self.level += 1
     #basic player specific commands
     def help(self, target=None):
         print([x for x in self.basic_action.keys()])
@@ -84,6 +89,8 @@ class player(creature):
     # an in game self status check
     def me(self, *args):
         print(self)
+        print(self.level)
+        print(self.experience)
         print(f'equipment, {self.items}')
         print(f'consumables, {self.consumables}')
     # an exit for the game loop
