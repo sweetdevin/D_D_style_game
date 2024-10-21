@@ -23,26 +23,38 @@ def col_n_validate(location, func_name_str, fail_str, target = None, *args):
     return False, f'that {fail_str} is not here'
 player_text =  'yourself, look in a mirror'
 class player(creature):
-    def __init__(self, name, text=player_text, level=1) -> None:
-        super().__init__(name, text, level)
-        self.stats = {'str':self.level *3, 'agi':self.level *3, 'int':self.level *3}
+    def __init__(self, name, text=player_text) -> None:
+        super().__init__(name, text)
+        self.stats = {'str':2, 'agi':2, 'int':2}
         self.location = spawnnode
         self.basic_action = {'look' : [self.look, 'look around your current room'], 'travel': [self.traverse, 'travel to another room'],
                              'me': [self.me,'examine yourself and what you are carrying'], 'quit': [self.quit, 'quits the game'], 
                              'attack': [self.enter_combat, 'attacks an enemy'], 'examine': [self.examine, 'loot at objects in the room'], 
                              'take' : [self.take_item, 'take an item from the room'], 'use': [self.use, 'use an item from  your inventory'],
-                               'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu']}
+                               'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu'],
+                               'level': [self.level_up, 'if you have enough experience you can level up']}
         self.active = False
         self.in_combat = False
         self.attacks = self.attacks | {'run': self.run, 'calm': self.calm,
                                        'dev touch': self.dev_touch}
         self.consumables = []
         self.experience = 0
+        self.level = 1
     # level up function
     def level_up(self, target=None):
-        if self.experience >= 100:
-            self.experience -= 100
+        #check experience
+        if self.experience >= self.level * 100:
+            self.experience -= self.level * 100
             self.level += 1
+            #award stat raises and start stat raise loop
+            count = 6  
+            while count > 0:
+                stat_to_raise = input(f'{count} raises left. What stat do you improve? "str" "agi" or "int"\n')
+                if stat_to_raise in ['str', 'agi', 'int']:
+                    self.stats[stat_to_raise] += 1
+                    count -=1
+                else: print('please type a stat "str", "agi" or "int"')
+            print("you have leveled up")
     #basic player specific commands
     def help(self, target=None):
         print([x for x in self.basic_action.keys()])
@@ -89,8 +101,10 @@ class player(creature):
     # an in game self status check
     def me(self, *args):
         print(self)
-        print(self.level)
-        print(self.experience)
+        print(f'level - {self.level}')
+        if self.experience > self.level * 100:
+            print('you can level')
+        else: print(f'you need {self.level * 100 - self.experience} more experience to level up')
         print(f'equipment, {self.items}')
         print(f'consumables, {self.consumables}')
     # an exit for the game loop
@@ -146,6 +160,7 @@ class player(creature):
             print(f'{self.name} is victorious')
             self.in_combat = False
             target.aggressive = False
+            self.experience += target.exp_val
             corpse = container(f'corpse of {target.name}', 'a bloody mangled corpse')
             for item in target.items:
                 corpse.add_items(item)
