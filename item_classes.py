@@ -16,19 +16,13 @@ class equipment(item_class):
     def __init__(self, name, text, stat=None, effect=None):
         super().__init__(name, text, stat, effect)
     def use(self):
-        if self.stat == 'health':
-            self.player.health += self.effect
-        elif self.stat == 'mana':
-            self.player.mana += self.effect    
+        self.player.get_n_set(self.stat, self.effect)   
 # consumable subclass
 class consumable(item_class):
     def __init__(self, name, text, stat=None, effect=None):
         super().__init__(name, text, stat, effect) 
     def use(self):
-        if self.stat == 'health':
-            self.player.health += self.effect
-        elif self.stat == 'mana':
-            self.player.mana += self.effect    
+        self.player.get_n_set(self.stat, self.effect)  
 # item subclass container
 class container(item_class):
     def __init__(self, name, text):

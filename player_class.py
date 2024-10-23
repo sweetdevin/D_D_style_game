@@ -154,20 +154,20 @@ class player(creature):
         npc_attack = npc_attacks[npc_index]
         target.attacks[npc_attack](self)
         #health check
-        if target.health <= 0: 
+        if target.vitals_getter('health') <= 0: 
             #victory text, exit combat, make corpse from dead mob
             # remove mob and add corpse to room
             print(f'{self.name} is victorious')
             self.in_combat = False
             target.aggressive = False
-            self.experience += target.exp_val
+            self.experience += target.exp_val * (1 - self.level/100)
             corpse = container(f'corpse of {target.name}', 'a bloody mangled corpse')
             for item in target.items:
                 corpse.add_items(item)
             self.location.remove_item(target)
             self.location.add_item(corpse)
             return
-        if self.health <= 0:
+        if self.vitals_getter('health') <= 0:
             #player death... needs to be expaned. have to figure out death.
             print(f'{self.name} has died')
             self.in_combat = False
@@ -190,7 +190,7 @@ class player(creature):
     # special developers spell to instakill
     def dev_touch(self, target):
         print(f'with godlike powers {self.name}, points at {target.name} and says die')
-        target.health = 0
+        target.vitals_setter('health', 0)
 
     # examine items function
     def examine(self, target = None):

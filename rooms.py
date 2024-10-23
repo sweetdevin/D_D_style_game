@@ -1,5 +1,4 @@
-from class_test import snagletooth, health_potion
-from class_test import dreadclaw
+from class_test import snagletooth, health_potion, dreadclaw
 opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west":'east'}
 class roomnode:
     def __init__(self, description):
