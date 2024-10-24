@@ -35,13 +35,14 @@ class player(creature):
                                'level': [self.level_up, 'if you have enough experience you can level up']}
         self.active = False
         self.in_combat = False
+        self.alive = True
         self.attacks = self.attacks | {'run': self.run, 'calm': self.calm,
                                        'dev touch': self.dev_touch}
         self.consumables = []
         self.experience = 0
         self.level = 1
     # level up function
-    def level_up(self, target=None):
+    def level_up(self):
         #check experience
         if self.experience >= self.level * 100:
             self.experience -= self.level * 100
@@ -56,7 +57,7 @@ class player(creature):
                 else: print('please type a stat "str", "agi" or "int"')
             print("you have leveled up")
     #basic player specific commands
-    def help(self, target=None):
+    def help(self):
         print([x for x in self.basic_action.keys()])
         detail = input("type a command for more details or exit to leave this menu \n")
         if detail == 'exit': return
@@ -83,7 +84,7 @@ class player(creature):
                         self.combat_loop(value)
         else: print('cannot travel that way') 
     # a simple look around or location command
-    def look(self, *args):
+    def look(self):
         #print room text, room contents.
         print(self.location.description)
         exits = [x for x in self.location.exits.keys()]
@@ -99,7 +100,7 @@ class player(creature):
                 print(f'item - {x}')
         else: print('no items')        
     # an in game self status check
-    def me(self, *args):
+    def me(self):
         print(self)
         print(f'level - {self.level}')
         if self.experience > self.level * 100:
@@ -108,7 +109,7 @@ class player(creature):
         print(f'equipment, {self.items}')
         print(f'consumables, {self.consumables}')
     # an exit for the game loop
-    def quit(self, *args):
+    def quit(self):
         self.active = False
         print('so long and thanks for all the fish')
     #combat target aquisition ends by calling combat loop
@@ -167,9 +168,10 @@ class player(creature):
             self.location.remove_item(target)
             self.location.add_item(corpse)
             return
+        #player death event handled in game loop
         if self.vitals_getter('health') <= 0:
-            #player death... needs to be expaned. have to figure out death.
             print(f'{self.name} has died')
+            self.alive = False
             self.in_combat = False
             target.aggressive = False
             return
@@ -177,7 +179,7 @@ class player(creature):
     # a run away command
     def run(self, target):
         self.in_combat = False
-        self.traverse()
+        self.traverse(target)
     # an end combat command
     def calm(self, target):
         chance = randint(0, 1)

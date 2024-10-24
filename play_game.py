@@ -10,6 +10,10 @@ def game_loop(player):
           with no memories of your past, only your name {player.name}''')
     player.look()
     while player.active == True:
+        if player.alive == False:
+            choice = input("restart or quit?\n")
+            if choice == 'restart': play_game()
+            else: player.quit()
         player_input = input('what action do you take? \n')
         actions = [x for x in player.basic_action.keys()]
         input_split = player_input.split(' ', 1)
@@ -17,7 +21,10 @@ def game_loop(player):
         if user_action in actions:
             if len(input_split) > 1:
                 target = input_split[1]
-                player.basic_action[user_action][0](target)
+                try: 
+                    player.basic_action[user_action][0](target)
+                except TypeError:
+                    print("what?")
                 continue
             player.basic_action[user_action][0]()
         else: print('please select an action')

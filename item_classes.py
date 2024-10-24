@@ -17,7 +17,7 @@ class equipment(item_class):
         super().__init__(name, text, stat, effect)
     def use(self):
         self.player.get_n_set(self.stat, self.effect)   
-# consumable subclass
+# consumable subclass 
 class consumable(item_class):
     def __init__(self, name, text, stat=None, effect=None):
         super().__init__(name, text, stat, effect) 
