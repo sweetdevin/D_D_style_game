@@ -41,6 +41,8 @@ class player(creature):
         self.consumables = []
         self.experience = 0
         self.level = 1
+        self.active_effects = {'health': 0, 'health max': 0, 'mana':0, 'mana max':0,
+                               'attack value':0, 'defence value':0}
     # level up function
     def level_up(self):
         #check experience
@@ -55,7 +57,18 @@ class player(creature):
                     self.stats[stat_to_raise] += 1
                     count -=1
                 else: print('please type a stat "str", "agi" or "int"')
-            print("you have leveled up")
+            print("you have leveled up \n you are fully healed")
+            self.refresh_vitals()
+            self.refresh_active()
+            self.get_n_set('mana', self.vitals_getter('mana max'))
+            self.get_n_set('health', self.vitals_getter('health max'))
+    # refresh equipment func 
+    def set_active(self, stats_string, effect):
+        self.active_effects[stats_string] += effect
+        self.get_n_set(stats_string, self.active_effects[stats_string])
+    def refresh_active(self):
+        for key, value in self.active_effects.items():
+            self.get_n_set(key, value)      
     #basic player specific commands
     def help(self):
         print([x for x in self.basic_action.keys()])
@@ -74,6 +87,7 @@ class player(creature):
         #validate input, change location, call look
         if target in direction_list:
             self.location = self.location.exits[target]
+            print(f'you travel {target}')
             self.look()
             #check for aggressive mobs, start combat if true
             for value in self.location.contents:
@@ -86,6 +100,7 @@ class player(creature):
     # a simple look around or location command
     def look(self):
         #print room text, room contents.
+        print('you look around the room')
         print(self.location.description)
         exits = [x for x in self.location.exits.keys()]
         print(f'obvious exits are {exits}')
@@ -201,7 +216,7 @@ class player(creature):
         if success:
             # selects item obj and print name and text
             item_obj = self.location.contents[value]
-            print(item_obj)
+            print(f'you examine {item_obj}')
             print(item_obj.text)
             if type(item_obj) == container:
                 # if item_obj is a container type print contents
@@ -226,6 +241,7 @@ class player(creature):
             if type(item_obj) == equipment:
                 self.items.append(item_obj)
                 item_obj.use()
+            print(f'you take {item_obj}')
         # if col and val fails print fail string
         else: print(value)
     # loot container function
@@ -243,11 +259,12 @@ class player(creature):
                     self.items[-1].use()
                 if type(item) == consumable:
                     self.consumables.append(item)
+                print(f'you take {item}')
                 cont_obj.contents.remove(item)
         # if success fails print fail string
         else: print(value)
     # use item function 
-    def use(self, target):
+    def use(self, target = None):
         # col and val function
         success, value = col_n_validate(self.consumables, 'use', 'item', target)
         if success:

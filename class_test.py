@@ -7,10 +7,7 @@ class creature:
         self.name = name
         self.text = text
         self.stats = {'str':str, 'agi':agi, 'int':int,} 
-        self.vitals = {'health max': 25 + (self.stats['str'] * 25), 'health': 25 + (self.stats['str'] * 25),
-                       "mana max": self.stats['int'] * 10, 'mana': self.stats['int']*10,
-                       'attack value': 1+(self.stats['str'] * 3) + (self.stats['agi'] * 3),
-                       'defence value':1+self.stats['agi'] * 3}
+        self.vitals = {}
         self.weapon = 'body'
         self.attacks = {'basic attack': self.basic_attack}
         self.aggressive = False
@@ -22,7 +19,11 @@ class creature:
         mana = {self.vitals_getter('mana')} of {self.vitals_getter('mana max')}
         attack = {self.vitals_getter('attack value')}
         defence = {self.vitals_getter('defence value')}'''
-    
+    def refresh_vitals(self):
+        self.vitals = {'health max': 25 + (self.stats['str'] * 25), 'health': 25 + (self.stats['str'] * 25),
+                       "mana max": self.stats['int'] * 10, 'mana': self.stats['int']*10,
+                       'attack value': 1+(self.stats['str'] * 3) + (self.stats['agi'] * 3),
+                       'defence value':1+self.stats['agi'] * 3}
     #basic attack function
     def basic_attack(self, target):
         damage = (self.vitals_getter('attack value') + randint(0, 20)) - target.vitals_getter('defence value')
@@ -106,3 +107,5 @@ mana_potion = consumable('mana potion', 'a vial of bubbly blue liquid', 'mana', 
 mana_charm = equipment('mana charm', 'a plusing carved crystal rune', 'mana max', 30)
 dreadclaw.add_item(mana_potion)
 dreadclaw.add_item(mana_potion)
+snagletooth.refresh_vitals()
+dreadclaw.refresh_vitals()

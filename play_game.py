@@ -4,6 +4,7 @@ def play_game():
     play_name = input('what is your name? \n')
     character = player(play_name)
     character.active = True
+    character.refresh_vitals()
     game_loop(character)
 def game_loop(player):
     print(f'''you wake up suddenly in a new place and new time.
