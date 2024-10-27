@@ -3,11 +3,11 @@ from item_classes import consumable, equipment
 # initial living creature class all player and 
 # npc will have this super class as of right now
 class creature:
-    def __init__(self, name, text, str=1, agi=1, int=1) -> None:
+    def __init__(self, name, text, vitals={}) -> None:
         self.name = name
         self.text = text
-        self.stats = {'str':str, 'agi':agi, 'int':int,} 
-        self.vitals = {}
+        self.stats = {'str':1, 'agi':1, 'int':1}
+        self.vitals = vitals
         self.weapon = 'body'
         self.attacks = {'basic attack': self.basic_attack}
         self.aggressive = False
@@ -19,6 +19,10 @@ class creature:
         mana = {self.vitals_getter('mana')} of {self.vitals_getter('mana max')}
         attack = {self.vitals_getter('attack value')}
         defence = {self.vitals_getter('defence value')}'''
+    def __copy__(self):
+        new_instance = type(self)(self.name, self.text, self.vitals.copy())
+        new_instance.refresh_vitals()
+        return new_instance
     def refresh_vitals(self):
         self.vitals = {'health max': 25 + (self.stats['str'] * 25), 'health': 25 + (self.stats['str'] * 25),
                        "mana max": self.stats['int'] * 10, 'mana': self.stats['int']*10,
@@ -66,9 +70,8 @@ class creature:
 #murlock subclass
 murlock_text = "A scaley frog-like humanoid walking upright with thin limbs and an enormous mouth."
 class murlock(creature):
-    def __init__(self, name, text) -> None:
+    def __init__(self, name, text, vitals ={}) -> None:
         super().__init__(name, text)
-
         self.weapon = 'claws'
         self.attacks = self.attacks | {'bubble attack': self.bubble_atk}
     #murlocks special attack
@@ -93,15 +96,17 @@ class barbarian(creature):
             target.get_n_set('health', damage)
             print(f'{self.name} leaps into the air and smashes his club down on {target.name} for {damage} damage')
 
-#testing code 
-dreadclaw = murlock('dreadclaw', murlock_text + "\n this murlock has massive claws.")
+#testing code
+rat= creature('rat', 'a large disgusting rat')
+rat.refresh_vitals()
+rat.exp_val_setter(30)
+dreadclaw = murlock('dreadclaw murlock', murlock_text + "\n these murlocks have large claws.")
 ring_of_health = equipment('ring of health', 'a glowing red ring', 'health max', 300)
 health_potion = consumable('health potion', 'a vial of a red bubbly liquid', 'health', 50)
 dreadclaw.add_item(health_potion)
-snagletooth = murlock('snagletooth', murlock_text + "\n This murlock has long snarly teeth.")
+snagletooth = murlock('snagletooth murlock', murlock_text + "\n These murlocks have long snarly teeth.")
 snagletooth.add_item(health_potion)
 snagletooth.add_item(ring_of_health)
-snagletooth.stats_setter('str', 2)
 dreadclaw.exp_val_setter(100)
 mana_potion = consumable('mana potion', 'a vial of bubbly blue liquid', 'mana', 20)
 mana_charm = equipment('mana charm', 'a plusing carved crystal rune', 'mana max', 30)

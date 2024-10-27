@@ -17,6 +17,9 @@ def game_loop(player):
             else: player.quit()
         player_input = input('what action do you take? \n')
         actions = [x for x in player.basic_action.keys()]
+        room_actions = []
+        if len(player.location.room_actions)>0:
+             room_actions = [x for x in player.location.room_actions.keys()]
         input_split = player_input.split(' ', 1)
         user_action = input_split[0]
         if user_action in actions:
@@ -28,6 +31,15 @@ def game_loop(player):
                     print("what?")
                 continue
             player.basic_action[user_action][0]()
+        elif user_action in room_actions:
+            if len(input_split) > 1:
+                target = input_split[1]
+                try: 
+                    player.location.room_actions[user_action](target)
+                except AttributeError:
+                    print(f"try just {user_action}")
+                continue
+            player.location.room_actions[user_action](player)
         else: print('please select an action')
 
 #proof of concept test functions

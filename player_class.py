@@ -1,7 +1,7 @@
 from class_test import creature
 from rooms import spawnnode
 from random import randint
-from item_classes import item_class, consumable, container, equipment
+from item_classes import item_class, consumable, container, equipment, fountain
 # collect and validate player inputs function 
 def col_n_validate(location, func_name_str, fail_str, target = None, *args):
     # filters options if needed args are class types to include
@@ -91,7 +91,7 @@ class player(creature):
             self.look()
             #check for aggressive mobs, start combat if true
             for value in self.location.contents:
-                if type(value).__bases__[0] == creature:
+                if type(value) == creature or type(value).__bases__[0] == creature:
                     if value.aggressive == True:
                         print(f'{value.name} attacks you')
                         self.in_combat = True
@@ -104,7 +104,7 @@ class player(creature):
         print(self.location.description)
         exits = [x for x in self.location.exits.keys()]
         print(f'obvious exits are {exits}')
-        creature_names = [x.name for x in self.location.contents if type(x).__bases__[0] == creature]
+        creature_names = [x.name for x in self.location.contents if type(x).__bases__[0] == creature or type(x) == creature]
         if len(creature_names) > 0:    
             for x in creature_names:
                 print(f'creature - {x}')
@@ -130,7 +130,7 @@ class player(creature):
     #combat target aquisition ends by calling combat loop
     def enter_combat(self, target = None):
         #print targets
-        targets = [x.name for x in self.location.contents if type(x).__bases__[0] == creature]
+        targets = [x.name for x in self.location.contents if type(x).__bases__[0] == creature or type(x) == creature]
         if target == None:
             if len(targets) == 0:
                 print('there is nothing here to attack')
@@ -271,5 +271,10 @@ class player(creature):
             item = self.consumables.pop(value)
             item.use()
         else: print(value)
-# a basic play game loop
+    def drink(self, target = None):
+        success, value = col_n_validate(self.location.contents, 'drink', 'fountain', target, fountain)
+        if success:
+            target.player_link(self)
+            target.drink()
+            target.player_remove()
 
