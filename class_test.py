@@ -3,7 +3,7 @@ from item_classes import consumable, equipment
 # initial living creature class all player and 
 # npc will have this super class as of right now
 class creature:
-    def __init__(self, name, text, vitals={}) -> None:
+    def __init__(self, name, text, vitals={}, exp_val = 10) -> None:
         self.name = name
         self.text = text
         self.stats = {'str':1, 'agi':1, 'int':1}
@@ -12,7 +12,7 @@ class creature:
         self.attacks = {'basic attack': self.basic_attack}
         self.aggressive = False
         self.items = []
-        self.exp_val = 10
+        self.exp_val = exp_val
     def __repr__(self):
         return f'''{self.name} 
         health = {self.vitals_getter('health')} of {self.vitals_getter('health max')} 
@@ -20,7 +20,7 @@ class creature:
         attack = {self.vitals_getter('attack value')}
         defence = {self.vitals_getter('defence value')}'''
     def __copy__(self):
-        new_instance = type(self)(self.name, self.text, self.vitals.copy())
+        new_instance = type(self)(self.name, self.text, self.vitals.copy(), self.exp_val)
         new_instance.refresh_vitals()
         return new_instance
     def refresh_vitals(self):
@@ -31,6 +31,8 @@ class creature:
     #basic attack function
     def basic_attack(self, target):
         damage = (self.vitals_getter('attack value') + randint(0, 20)) - target.vitals_getter('defence value')
+        if damage <= 0:
+            print(f'{self.name} missed {target.name}')
         target.get_n_set('health', damage, True)
         print(f'{self.name} hit {target.name} with {self.weapon} for {damage} damage')
     #mana check to be used before all mana costing attacks, 
@@ -59,6 +61,7 @@ class creature:
     # an experience value modifier function
     def exp_val_setter(self, value):
         self.exp_val = value
+    # a get and set function to streamline modifying values
     def get_n_set(self, stats_string, value, subtract = False):
         if subtract == True: value = 0 - value
         new_val = self.vitals_getter(stats_string) + value
@@ -70,7 +73,7 @@ class creature:
 #murlock subclass
 murlock_text = "A scaley frog-like humanoid walking upright with thin limbs and an enormous mouth."
 class murlock(creature):
-    def __init__(self, name, text, vitals ={}) -> None:
+    def __init__(self, name, text) -> None:
         super().__init__(name, text)
         self.weapon = 'claws'
         self.attacks = self.attacks | {'bubble attack': self.bubble_atk}
@@ -96,7 +99,8 @@ class barbarian(creature):
             target.get_n_set('health', damage)
             print(f'{self.name} leaps into the air and smashes his club down on {target.name} for {damage} damage')
 
-#testing code
+# creating creature class objects and item class objects
+#setting values for creature objects and adding item objects to creatures
 rat= creature('rat', 'a large disgusting rat')
 rat.refresh_vitals()
 rat.exp_val_setter(30)

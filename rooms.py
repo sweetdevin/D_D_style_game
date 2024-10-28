@@ -1,22 +1,31 @@
 from class_test import snagletooth, health_potion, dreadclaw, rat
 from item_classes import fountain
 import copy
+#opposites direction dictionary needed for linking nodes via add exit method
 opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west":'east',
              'north':'south', 'south':'north'}
+#Roomnode class 
 class roomnode:
     def __init__(self, description):
         self.description = description
         self.exits = {}
         self.contents = []
         self.room_actions = {}
+    #add exit method links roomnodes together.
     def add_exits(self, linking_node, direction):
         self.exits[direction] = linking_node
         op_dir = opposites[direction]
         linking_node.exits[op_dir] = self
+    #add object to room contents objects are item class objects and creature class objects
     def add_item(self, item_class):
         self.contents.append(item_class)
+    #remove object from room
     def remove_item(self, item_key):
         self.contents.remove(item_key)
+    #add method link to room methods
+    def add_method(self, method_key, method_locations):
+        self.room_actions[method_key] = method_locations
+#build rooms, linking rooms, adding objects, adding methods
 tower_g_text = 'you stand at the gates outside of a large tower'
 tower_g =roomnode(tower_g_text)
 tower_g.add_item(rat)
@@ -53,4 +62,4 @@ swamp_south_1.add_exits(swamp_west, 'north')
 swamp_south_1.add_item(dreadclaw)
 restore_fountain = fountain('fountain of healing', 'a small stone fountain')
 spawnnode.add_item(restore_fountain)
-spawnnode.room_actions['drink'] = restore_fountain.drink
+spawnnode.add_method('drink', restore_fountain.drink)

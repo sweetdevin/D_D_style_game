@@ -161,15 +161,6 @@ class player(creature):
         else:
             print(f'{self.name} is confused by your command and uses a basic attack')
             self.basic_attack(target)
-        #still in combat check
-        if self.in_combat == False:
-            return
-        #npc attack phase
-        npc_attacks = [x for x in target.attacks.keys()]
-        npc_index = randint(0, len(npc_attacks) -1)
-        npc_attack = npc_attacks[npc_index]
-        target.attacks[npc_attack](self)
-        #health check
         if target.vitals_getter('health') <= 0: 
             #victory text, exit combat, make corpse from dead mob
             # remove mob and add corpse to room
@@ -183,6 +174,14 @@ class player(creature):
             self.location.remove_item(target)
             self.location.add_item(corpse)
             return
+        #still in combat check
+        if self.in_combat == False:
+            return
+        #npc attack phase
+        npc_attacks = [x for x in target.attacks.keys()]
+        npc_index = randint(0, len(npc_attacks) -1)
+        npc_attack = npc_attacks[npc_index]
+        target.attacks[npc_attack](self)
         #player death event handled in game loop
         if self.vitals_getter('health') <= 0:
             print(f'{self.name} has died')
@@ -271,10 +270,4 @@ class player(creature):
             item = self.consumables.pop(value)
             item.use()
         else: print(value)
-    def drink(self, target = None):
-        success, value = col_n_validate(self.location.contents, 'drink', 'fountain', target, fountain)
-        if success:
-            target.player_link(self)
-            target.drink()
-            target.player_remove()
 
