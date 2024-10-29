@@ -30,7 +30,11 @@ def game_loop(player):
                 except TypeError:
                     print("what?")
                 continue
-            player.basic_action[user_action][0]()
+            try:
+                player.basic_action[user_action][0]()
+            except TypeError:
+                print('what?')
+                continue
         elif user_action in room_actions:
             if len(input_split) > 1:
                 target = input_split[1]

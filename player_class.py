@@ -32,7 +32,8 @@ class player(creature):
                              'attack': [self.enter_combat, 'attacks an enemy'], 'examine': [self.examine, 'loot at objects in the room'], 
                              'take' : [self.take_item, 'take an item from the room'], 'use': [self.use, 'use an item from  your inventory'],
                                'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu'],
-                               'level': [self.level_up, 'if you have enough experience you can level up']}
+                               'level': [self.level_up, 'if you have enough experience you can level up'], 
+                               'search': [self.search, 'search a target to discover hidden things']}
         self.active = False
         self.in_combat = False
         self.alive = True
@@ -161,6 +162,7 @@ class player(creature):
         else:
             print(f'{self.name} is confused by your command and uses a basic attack')
             self.basic_attack(target)
+        #health check on target
         if target.vitals_getter('health') <= 0: 
             #victory text, exit combat, make corpse from dead mob
             # remove mob and add corpse to room
@@ -271,3 +273,13 @@ class player(creature):
             item.use()
         else: print(value)
 
+    def search(self, target):
+        try:
+            found_obj = self.location.search[target]
+        except KeyError:
+            print('search what?')
+            return
+        if type(found_obj) == str:
+            print(found_obj)
+            return
+        self.location.discover(found_obj)

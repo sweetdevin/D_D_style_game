@@ -11,6 +11,8 @@ class roomnode:
         self.exits = {}
         self.contents = []
         self.room_actions = {}
+        self.hidden = []
+        self.search = {}
     #add exit method links roomnodes together.
     def add_exits(self, linking_node, direction):
         self.exits[direction] = linking_node
@@ -25,10 +27,30 @@ class roomnode:
     #add method link to room methods
     def add_method(self, method_key, method_locations):
         self.room_actions[method_key] = method_locations
+    #add hidden items to room
+    def add_hidden(self, item_class):
+        self.hidden.append(item_class)
+    #move item from hidden to visable
+    def discover(self, item_class):
+        try:
+            index = self.hidden.index(item_class)
+        except ValueError:
+            print('that has already been searched')
+            return
+        item_obj = self.hidden.pop(index)
+        self.add_item(item_obj)
+        print(f'you found {item_obj.name}')
+    #add searchable targets to room
+    def add_search(self, search_string, search_result):
+        self.search[search_string] = search_result
 #build rooms, linking rooms, adding objects, adding methods
-tower_g_text = 'you stand at the gates outside of a large tower'
+tower_g_text = '''you stand at the gates outside of a large tower.
+On one side of the gates there is a trashcan. On the other there is a pile of sticks'''
 tower_g =roomnode(tower_g_text)
 tower_g.add_item(rat)
+tower_g.add_hidden(health_potion)
+tower_g.add_search('pile', health_potion)
+tower_g.add_search('trashcan', 'nothing of value, just trash')
 tower_1_text = "you stand on the ground floor of a large stone tower"
 tower_1 = roomnode(tower_1_text)
 tower_1.add_item(copy.copy(rat))
