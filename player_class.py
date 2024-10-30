@@ -1,7 +1,7 @@
 from class_test import creature
 from rooms import spawnnode
 from random import randint
-from item_classes import item_class, consumable, container, equipment, fountain
+from item_classes import item_class, consumable, container, equipment, key
 # collect and validate player inputs function 
 def col_n_validate(location, func_name_str, fail_str, target = None, *args):
     # filters options if needed args are class types to include
@@ -221,6 +221,9 @@ class player(creature):
             print(item_obj.text)
             if type(item_obj) == container:
                 # if item_obj is a container type print contents
+                if item_obj.is_locked == True:
+                    print('is locked')
+                    return
                 print('contains')
                 if len(item_obj.contents) == 0:
                     print('nothing')
@@ -230,18 +233,19 @@ class player(creature):
     # take item function    
     def take_item(self, target = None):
         # col and val function
-        success, value = col_n_validate(self.location.contents,'take', 'item', target, consumable, equipment)
+        success, value = col_n_validate(self.location.contents,'take', 'item', target, consumable, equipment, key)
         if success:
             # if success of col and val, select item obj, remove from room
             # add to player inventory, link item obj to player
             item_obj = self.location.contents[value]
             self.location.contents.remove(item_obj)
             item_obj.player_link(self)
-            if type(item_obj) == consumable:
+            if type(item_obj) == consumable or key:
                 self.consumables.append(item_obj)
-            if type(item_obj) == equipment:
+            else:
                 self.items.append(item_obj)
-                item_obj.use()
+            if type(item_obj) == equipment:
+                item_obj.use(self)
             print(f'you take {item_obj}')
         # if col and val fails print fail string
         else: print(value)
@@ -253,12 +257,14 @@ class player(creature):
             # if success, take all from cont obj, add each item to player,
             # link items, remove item from container
             cont_obj = self.location.contents[value]
+            if cont_obj.is_locked == True:
+                print('that container in locked')
             for item in [x for x in cont_obj.contents]:
                 item.player_link(self)
                 if type(item) == equipment:
                     self.items.append(item)
                     self.items[-1].use()
-                if type(item) == consumable:
+                if type(item) == consumable or key:
                     self.consumables.append(item)
                 print(f'you take {item}')
                 cont_obj.contents.remove(item)

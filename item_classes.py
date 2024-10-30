@@ -32,14 +32,39 @@ class container(item_class):
     def __init__(self, name, text):
         super().__init__(name, text)
         self.contents = []
+        self.is_locked = False
     def add_items(self, item_obj):
         self.contents.append(item_obj)
+    def unlock(self):
+        self.is_locked = False
+        print(f'you unlock {self}')
+    def lock(self):
+        self.is_locked = True   
 class fountain(item_class):
-    def __init__(self, name, text, stat=None, effect=None):
-        super().__init__(name, text, stat, effect)
+    def __init__(self, name, text):
+        super().__init__(name, text)
     def drink(self, player):
         self.player_link(player)
         player.get_n_set('mana', player.vitals_getter('mana max'))
         player.get_n_set('health', player.vitals_getter('health max'))
         self.player_remove()
         print('you are fully healed')
+class key(item_class):
+    def __init__(self, name, text):
+        super().__init__(name, text)
+        self.linked_obj = None
+    def link_obj(self, target):
+        self.linked_obj = target
+    def use(self):
+        if self.linked_obj in self.player.location.contents:
+            self.linked_obj.unlock()
+        else:
+            print("you can't use that key here")
+
+# instancing obejects
+sm_box_01 = container('small lockbox', 'a small lockbox for personal effects')
+sm_box_01.lock()
+sm_key_01 = key('small key', 'a simple small brass key')
+sm_key_01.link_obj(sm_box_01)
+sm_health_potion = consumable('health potion', 'a vial of red bubbly liquid', 'health', 50)
+sm_box_01.add_items(sm_health_potion)

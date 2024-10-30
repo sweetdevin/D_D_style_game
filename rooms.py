@@ -1,5 +1,5 @@
-from class_test import snagletooth, health_potion, dreadclaw, rat
-from item_classes import fountain
+from class_test import snagletooth, health_potion, dreadclaw, rat, ring_of_health
+from item_classes import fountain, sm_box_01, sm_key_01
 import copy
 #opposites direction dictionary needed for linking nodes via add exit method
 opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west":'east',
@@ -51,9 +51,13 @@ tower_g.add_item(rat)
 tower_g.add_hidden(health_potion)
 tower_g.add_search('pile', health_potion)
 tower_g.add_search('trashcan', 'nothing of value, just trash')
-tower_1_text = "you stand on the ground floor of a large stone tower"
+tower_1_text = """you stand on the ground floor of a large stone tower.
+There is a small lockbox by the door, and a wooden desk in the middle of the room"""
 tower_1 = roomnode(tower_1_text)
 tower_1.add_item(copy.copy(rat))
+tower_1.add_item(sm_box_01)
+tower_1.add_hidden(sm_key_01)
+tower_1.add_search('desk', sm_key_01)
 tower_2_text = 'you stand on the second floor of a large stone tower'
 tower_2 = roomnode(tower_2_text)
 tower_2.add_item(copy.copy(rat))
