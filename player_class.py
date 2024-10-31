@@ -75,13 +75,16 @@ class player(creature):
         print([x for x in self.basic_action.keys()])
         detail = input("type a command for more details or exit to leave this menu \n")
         if detail == 'exit': return
-        print(self.basic_action[detail][1])
+        try:
+            print(self.basic_action[detail][1])
+        except KeyError:
+            print(f'no help on {detail}')
         return self.help()  
 
     # a travel function to move the play    
     def traverse(self, target=None):
         #print travel directions, collect input
-        direction_list = [x for x in self.location.exits.keys()]
+        direction_list = self.location.get_exits()
         if target not in direction_list:
             print(direction_list)
             target = input('which way? \n')
@@ -103,7 +106,7 @@ class player(creature):
         #print room text, room contents.
         print('you look around the room')
         print(self.location.description)
-        exits = [x for x in self.location.exits.keys()]
+        exits = self.location.get_exits()
         print(f'obvious exits are {exits}')
         creature_names = [x.name for x in self.location.contents if type(x).__bases__[0] == creature or type(x) == creature]
         if len(creature_names) > 0:    
