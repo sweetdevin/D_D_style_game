@@ -1,7 +1,7 @@
 from class_test import creature
 from rooms import spawnnode
 from random import randint
-from item_classes import item_class, consumable, container, equipment, key
+from item_classes import item_class, consumable, container, equipment, key, door
 # collect and validate player inputs function 
 def col_n_validate(location, func_name_str, fail_str, target = None, *args):
     # filters options if needed args are class types to include
@@ -89,7 +89,12 @@ class player(creature):
             print(direction_list)
             target = input('which way? \n')
         #validate input, change location, call look
-        if target in direction_list:
+        door_list = [x for x in self.location.contents if type(x) == door]
+        door_blocking = [x.exit for x in door_list]
+        if target in door_blocking:
+            print('there is a locked door in your way')
+            return
+        elif target in direction_list:
             self.location = self.location.exits[target]
             print(f'you travel {target}')
             self.look()

@@ -1,5 +1,5 @@
 from class_test import snagletooth, health_potion, dreadclaw, rat, ring_of_health
-from item_classes import fountain, sm_box_01, sm_key_01
+from item_classes import fountain, sm_box_01, sm_key_01, west_door, west_door_key_blue, west_door_key_green
 import copy
 #opposites direction dictionary needed for linking nodes via add exit method
 opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west":'east',
@@ -38,8 +38,7 @@ class roomnode:
         self.room_actions[method_key] = method_locations
     #add hidden items to room
     def add_hidden(self, item_class):
-        self.hidden.append(item_class)
-    
+        self.hidden.append(item_class)   
     #move item from hidden to visable
     def discover(self, item_class):
         try:
@@ -100,16 +99,21 @@ tower_3.add_hidden(tower_4)
 tower_3.add_search('painting', tower_4)
 spawnnode.add_item(health_potion)
 swamp_west = roomnode('the swampland splits here with passages going both north and south')
+swamp_west_1 = roomnode('an alter in the middle of the swamp')
+swamp_west.add_item(west_door)
 spawnnode.add_exits(swamp_west, 'west')
+swamp_west.add_exits(swamp_west_1, 'west')
 swamp_north_1_text = '''a large swamp with small stick and mud dwellings
 the beginning of the snagletooth village'''
 swamp_north_1 = roomnode(swamp_north_1_text)
+snagletooth.add_item(west_door_key_blue)
 swamp_north_1.add_item(snagletooth)
 swamp_north_1.add_exits(swamp_west, 'south')
 swamp_south_1_text = '''a large swamp with small stick and mud dwelling
 this is the beginning of the dreadclaw village'''
 swamp_south_1 = roomnode(swamp_south_1_text)
 swamp_south_1.add_exits(swamp_west, 'north')
+dreadclaw.add_item(west_door_key_green)
 swamp_south_1.add_item(dreadclaw)
 restore_fountain = fountain('fountain of healing', 'a small stone fountain')
 spawnnode.add_item(restore_fountain)
