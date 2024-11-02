@@ -63,13 +63,16 @@ class player(creature):
             self.refresh_active()
             self.get_n_set('mana', self.vitals_getter('mana max'))
             self.get_n_set('health', self.vitals_getter('health max'))
-    # refresh equipment func 
+    # refresh equipment func
     def set_active(self, stats_string, effect):
         self.active_effects[stats_string] += effect
         self.get_n_set(stats_string, self.active_effects[stats_string])
     def refresh_active(self):
         for key, value in self.active_effects.items():
             self.get_n_set(key, value)      
+    #add consumable 
+    def add_consumable(self, item_obj):
+        self.consumables.append(item_obj)
     #basic player specific commands
     def help(self):
         print([x for x in self.basic_action.keys()])
@@ -249,10 +252,9 @@ class player(creature):
             self.location.contents.remove(item_obj)
             item_obj.player_link(self)
             if type(item_obj) == consumable or key:
-                self.consumables.append(item_obj)
-            else:
-                self.items.append(item_obj)
-            if type(item_obj) == equipment:
+                self.add_consumable(item_obj)
+            elif type(item_obj) == equipment:
+                self.add_item(item_obj)
                 item_obj.use(self)
             print(f'you take {item_obj}')
         # if col and val fails print fail string
@@ -270,10 +272,10 @@ class player(creature):
             for item in [x for x in cont_obj.contents]:
                 item.player_link(self)
                 if type(item) == equipment:
-                    self.items.append(item)
-                    self.items[-1].use()
-                if type(item) == consumable or key:
-                    self.consumables.append(item)
+                    self.add_item(item)
+                    item.use()
+                elif type(item) == consumable or key:
+                    self.add_consumable(item)
                 print(f'you take {item}')
                 cont_obj.contents.remove(item)
         # if success fails print fail string
