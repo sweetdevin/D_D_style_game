@@ -1,5 +1,13 @@
+import asyncio
 from player_class import player
 # a basic play game loop
+
+async def passive_heal(player):
+    while player.active == True:
+        player.get_n_set('health', 1)
+        player.get_n_set('mana', 1)
+        await asyncio.sleep(15)
+        print('you heal 1 health and mana')
 def play_game():
     play_name = input('what is your name? \n')
     character = player(play_name)
@@ -11,6 +19,7 @@ def game_loop(player):
           with no memories of your past, only your name {player.name}''')
     player.look()
     while player.active == True:
+        asyncio.run(passive_heal(player))
         if player.alive == False:
             choice = input("restart or quit?\n")
             if choice == 'restart': play_game()
