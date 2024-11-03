@@ -4,27 +4,39 @@ from player_class import player
 
 async def passive_heal(player):
     while player.active == True:
+        await asyncio.sleep(15)
         player.get_n_set('health', 1)
         player.get_n_set('mana', 1)
-        await asyncio.sleep(15)
         print('you heal 1 health and mana')
 def play_game():
     play_name = input('what is your name? \n')
     character = player(play_name)
     character.active = True
     character.refresh_vitals()
-    game_loop(character)
-def game_loop(player):
+    asyncio.run(game_loop(character))
+#EXPERIMENTAL CODE
+async def handle_input(queue):
+    while True:
+        user_input = await asyncio.to_thread(input, "what do you do? \n")
+        await queue.put(user_input)
+
+async def game_loop(player):
     print(f'''you wake up suddenly in a new place and new time.
           with no memories of your past, only your name {player.name}''')
     player.look()
+    queue = asyncio.Queue()
+
+    # Start the periodic task
+    asyncio.create_task(passive_heal(player))
+    
+    # Start the input handler
+    asyncio.create_task(handle_input(queue))
     while player.active == True:
-        asyncio.run(passive_heal(player))
         if player.alive == False:
             choice = input("restart or quit?\n")
             if choice == 'restart': play_game()
             else: player.quit()
-        player_input = input('what action do you take? \n')
+        player_input = await queue.get()
         actions = [x for x in player.basic_action.keys()]
         room_actions = []
         if len(player.location.room_actions)>0:
