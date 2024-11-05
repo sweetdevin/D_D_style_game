@@ -68,8 +68,13 @@ class player(creature):
         self.active_effects[stats_string] += effect
         self.get_n_set(stats_string, self.active_effects[stats_string])
     def refresh_active(self):
-        for key, value in self.active_effects.items():
-            self.get_n_set(key, value)      
+        try:
+            for item in self.items:
+                self.set_active(item.stats, item.effect)
+        except ValueError:
+            self.active = {'health': 0, 'health max': 0, 'mana':0, 'mana max':0,
+                               'attack value':0, 'defence value':0}
+
     #add consumable 
     def add_consumable(self, item_obj):
         self.consumables.append(item_obj)

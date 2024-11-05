@@ -1,5 +1,5 @@
 from class_test import snagletooth, health_potion, dreadclaw, rat, ring_of_health
-from item_classes import fountain, sm_box_01, sm_key_01, west_door, west_door_key_blue, west_door_key_green
+from item_classes import fountain, sm_box_01, sm_key_01, west_door, west_door_key_blue, west_door_key_green, save_point
 import copy
 #opposites direction dictionary needed for linking nodes via add exit method
 opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west":'east',
@@ -118,3 +118,5 @@ swamp_south_1.add_item(dreadclaw)
 restore_fountain = fountain('fountain of healing', 'a small stone fountain')
 spawnnode.add_item(restore_fountain)
 spawnnode.add_method('drink', restore_fountain.drink)
+spawnnode.add_item(save_point)
+spawnnode.add_method('save', save_point.save)

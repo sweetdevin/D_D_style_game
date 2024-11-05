@@ -1,3 +1,4 @@
+import shelve
 #items class
 class item_class():
     def __init__(self, name, text, stat = None, effect = None):
@@ -85,7 +86,12 @@ class key(item_class):
             self.linked_obj.add_key(self)
         else:
             print("you can't use that key here")
-
+class save_altar(item_class):
+    def __init__(self, name, text):
+        super().__init__(name, text)
+    def save(self, player):
+        with shelve.open('player.db') as db:
+            db[player.name] = player
 # instancing obejects
 sm_box_01 = container('small lockbox', 'a small lockbox for personal effects', True, 1)
 sm_key_01 = key('small key', 'a simple small brass key')
@@ -97,3 +103,4 @@ west_door_key_green =key('green key', 'a key made of a strange green rock')
 west_door_key_green.link_obj(west_door)
 west_door_key_blue = key('a blue key', 'a key made of a strange blue rock')
 west_door_key_blue.link_obj(west_door)
+save_point = save_altar('a stange glowing altar', 'you sense this altar would "save" your current state')

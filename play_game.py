@@ -1,4 +1,5 @@
 import asyncio
+import shelve
 from player_class import player
 # a basic play game loop
 
@@ -10,9 +11,17 @@ async def passive_heal(player):
         print('you heal 1 health and mana')
 def play_game():
     play_name = input('what is your name? \n')
-    character = player(play_name)
+    character = None
+    try:
+        with shelve.open('player.db') as db:
+            character = db[play_name]
+    except KeyError:
+        character = player(play_name)
     character.active = True
     character.refresh_vitals()
+    character.items =[]
+    character.consumables = []
+    character.refresh_active()
     asyncio.run(game_loop(character))
 #EXPERIMENTAL CODE
 async def handle_input(queue):
