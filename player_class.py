@@ -1,7 +1,9 @@
-from class_test import creature
+from class_test import creature, murlock 
 from rooms import spawnnode
 from random import randint
 from item_classes import item_class, consumable, container, equipment, key, door
+import asyncio
+creature_classes = [creature, murlock]
 # collect and validate player inputs function 
 def col_n_validate(location, func_name_str, fail_str, target = None, *args):
     # filters options if needed args are class types to include
@@ -15,7 +17,6 @@ def col_n_validate(location, func_name_str, fail_str, target = None, *args):
         print(names)
         target = input(f'{func_name_str} what? \n')
     #validate player input is valid returns index of input if true
-    print(target)
     if target in names:
         index = [x.name for x in location].index(target)
         return True, index
@@ -29,7 +30,7 @@ class player(creature):
         self.location = spawnnode
         self.basic_action = {'look' : [self.look, 'look around your current room'], 'travel': [self.traverse, 'travel to another room'],
                              'me': [self.me,'examine yourself and what you are carrying'], 'quit': [self.quit, 'quits the game'], 
-                             'attack': [self.enter_combat, 'attacks an enemy'], 'examine': [self.examine, 'loot at objects in the room'], 
+                              'attack': [self.enter_combat, 'attack a target'], 'examine': [self.examine, 'loot at objects in the room'], 
                              'take' : [self.take_item, 'take an item from the room'], 'use': [self.use, 'use an item from  your inventory'],
                                'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu'],
                                'level': [self.level_up, 'if you have enough experience you can level up'], 
@@ -38,7 +39,7 @@ class player(creature):
         self.in_combat = False
         self.alive = True
         self.attacks = self.attacks | {'run': self.run, 'calm': self.calm,
-                                       'dev touch': self.dev_touch}
+                                       'dev_touch': self.dev_touch, 'slam': self.slam}
         self.consumables = []
         self.experience = 0
         self.level = 1
@@ -58,6 +59,7 @@ class player(creature):
                     self.stats[stat_to_raise] += 1
                     count -=1
                 else: print('please type a stat "str", "agi" or "int"')
+            #print and heal player
             print("you have leveled up \n you are fully healed")
             self.refresh_vitals()
             self.refresh_active()
@@ -74,6 +76,7 @@ class player(creature):
         except ValueError:
             self.active = {'health': 0, 'health max': 0, 'mana':0, 'mana max':0,
                                'attack value':0, 'defence value':0}
+            
 
     #add consumable 
     def add_consumable(self, item_obj):
@@ -96,12 +99,14 @@ class player(creature):
         if target not in direction_list:
             print(direction_list)
             target = input('which way? \n')
-        #validate input, change location, call look
+        # check to see if door blocking
         door_list = [x for x in self.location.contents if type(x) == door]
         door_blocking = [x.exit for x in door_list]
+        # If door print and return
         if target in door_blocking:
             print('there is a locked door in your way')
             return
+        #validate direction
         elif target in direction_list:
             self.location = self.location.exits[target]
             print(f'you travel {target}')
@@ -145,70 +150,96 @@ class player(creature):
         self.active = False
         print('so long and thanks for all the fish')
     #combat target aquisition ends by calling combat loop
-    def enter_combat(self, target = None):
+    async def enter_combat(self, target = None):
         #print targets
         targets = [x.name for x in self.location.contents if type(x).__bases__[0] == creature or type(x) == creature]
+        #if no target designated check room for possible targets
         if target == None:
+            #if no targets possible print and return
             if len(targets) == 0:
                 print('there is nothing here to attack')
                 return 
-            print(targets)
+            #if targets are possible print targets
+            else:
+                print(targets)
         #select and validate targets
             target = input('attack what? \n')
         if target not in targets:
             print('that target does not exist here')
             return
+        #if target valid set combat to True, and print
         self.in_combat = True
         print(f'you attack {target}')
+        #find target objects index
         target_index = [x.name for x in self.location.contents].index(target)
-        self.combat_loop(self.location.contents[target_index])
-    # the combat loop
-    def combat_loop(self, target):
-        # turn target agressive
-        target.aggressive = True
-        if self.in_combat == False: 
-            return
-        #print attacks
-        attacks = [x for x in self.attacks.keys()]
-        print(attacks)
-       #select, validate, and call attack 
-        player_input = input('what action do you take? \n')
-        if player_input in attacks:
-           self.attacks[player_input](target)
-        else:
-            print(f'{self.name} is confused by your command and uses a basic attack')
-            self.basic_attack(target)
-        #health check on target
-        if target.vitals_getter('health') <= 0: 
-            #victory text, exit combat, make corpse from dead mob
-            # remove mob and add corpse to room
+        #turn mob aggressive
+        self.location.contents[target_index].aggressive = True
+        #call combat async function on target
+        await self.combat(self.location.contents[target_index])
+    # victory check for comabt
+    def victory_check(self, target):
+        # check targets health is below 0
+        if target.vitals_getter('health') <= 0:
+            #print victory
             print(f'{self.name} is victorious')
+            #remove from combat loop
             self.in_combat = False
             target.aggressive = False
+            #add experience based on level
             self.experience += target.exp_val * (1 - self.level/100)
+            #instance a corpse from the mob
             corpse = container(f'corpse of {target.name}', 'a bloody mangled corpse')
+            #load corpse with mobs items
             for item in target.items:
                 corpse.add_items(item)
+            #remove mob
             self.location.remove_item(target)
+            #add corpse
             self.location.add_item(corpse)
-            return
-        #still in combat check
-        if self.in_combat == False:
-            return
-        #npc attack phase
-        npc_attacks = [x for x in target.attacks.keys()]
-        npc_index = randint(0, len(npc_attacks) -1)
-        npc_attack = npc_attacks[npc_index]
-        target.attacks[npc_attack](self)
-        #player death event handled in game loop
+            #return that victory was achieved
+            return True
+    #death check
+    def death_check(self, target):
+        #check player health is below zero
         if self.vitals_getter('health') <= 0:
-            print(f'{self.name} has died')
-            self.alive = False
-            self.in_combat = False
-            target.aggressive = False
-            return
-        return self.combat_loop(target)
-    # a run away command
+                #print death  notice
+                print(f'{self.name} has died')
+                #set alive, combat, and mob aggression
+                self.alive = False
+                self.in_combat = False
+                target.aggressive = False
+                #return True 
+                return True
+    #melee attack loop
+    async def basic_attack_loop(self, target):
+        #while player in is combat
+        while self.in_combat == True:
+            #perform a melee attack on target
+            self.basic_attack(target)
+            #see if target survived
+            victory = self.victory_check(target)
+            #if target died end loop
+            if victory:
+                return
+            #target melee attacks me
+            target.basic_attack(self)
+            #see if i lived
+            death = self.death_check(target)
+            #if i died end loop
+            if death:
+                return
+            #wait 5 seconds before repeating
+            await asyncio.sleep(5)
+    # a function to assign combat loop as a task to run in the background
+    async def combat(self, target):
+        asyncio.create_task(self.basic_attack_loop(target))
+    # a simple special attack for testing
+    def slam(self, target):
+        valid = self.mana_check_n_set(5)
+        if valid:
+            target.get_n_set('health', 20, True)
+            print(f'you slam down hard on {target.name}')
+    # a run function
     def run(self, target):
         self.in_combat = False
         self.traverse(target)
@@ -223,9 +254,8 @@ class player(creature):
             print(f'{target.name} calms down')
     # special developers spell to instakill
     def dev_touch(self, target):
-        print(f'with godlike powers {self.name}, points at {target.name} and says die')
-        target.vitals_setter('health', 0)
-
+            print(f'with godlike powers {self.name}, points at {target.name} and says die')
+            target.vitals_setter('health', 0)
     # examine items function
     def examine(self, target = None):
         #col and val fun returns either success and index or fail and return string
@@ -293,14 +323,19 @@ class player(creature):
             item = self.consumables.pop(value)
             item.use()
         else: print(value)
-
+    # search function
     def search(self, target):
+        #only error handling since user since objects are hidden
         try:
             found_obj = self.location.search[target]
         except KeyError:
             print('search what?')
             return
+        #if search works test if it returns an object or a string
         if type(found_obj) == str:
+            #print string if string and return
             print(found_obj)
             return
-        self.location.discover(found_obj)
+        #if object call discover object fuction on object
+        else:
+            self.location.discover(found_obj)

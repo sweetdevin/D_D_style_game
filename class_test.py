@@ -23,6 +23,7 @@ class creature:
         new_instance = type(self)(self.name, self.text, self.vitals.copy(), self.exp_val)
         new_instance.refresh_vitals()
         return new_instance
+    #sets vitals based off of stats
     def refresh_vitals(self):
         self.vitals = {'health max': 25 + (self.stats['str'] * 25), 'health': 25 + (self.stats['str'] * 25),
                        "mana max": self.stats['int'] * 10, 'mana': self.stats['int']*10,
@@ -36,13 +37,15 @@ class creature:
         target.get_n_set('health', damage, True)
         print(f'{self.name} hit {target.name} with {self.weapon} for {damage} damage')
     #mana check to be used before all mana costing attacks, 
-    #makes sure self has mana if it does not it performs basic attck
-    def mana_check(self, target, cost):
+    #makes sure self has mana if it does not returns false.
+    def mana_check_n_set(self, cost):
         if self.vitals_getter('mana') < cost:
-            print(f'{self.name} lacks the mind to perform this ability and does a basic attack')
-            self.basic_attack(target)
+            print(f'{self.name} lacks the mind for that')
             return False
-        return True
+        #if true subtracts spell cost, returns True
+        else:
+            self.get_n_set('mana', cost, True)
+            return True
     # add_tiem function
     def add_item(self, item):
         self.items.append(item)
@@ -58,6 +61,16 @@ class creature:
     # a stats setter
     def stats_setter(self, stat_string, value):
         self.stats[stat_string] = value
+    # a display mana function
+    def mana_display(self):
+        mana_percent = (self.vitals_getter('mana') / self.vitals_getter('mana max')) * 100
+        mana_list = ['%' for x in range(round(mana_percent/2))]
+        print(f'mana - {str(mana_list)}')
+    # a display health function
+    def health_display(self):
+        health_percent = (self.vitals_getter('health') / self.vitals_getter('health max')) * 100
+        health_list = ['%' for x in range(round(health_percent/2))]
+        print(f'health - {str(health_list)}')
     # an experience value modifier function
     def exp_val_setter(self, value):
         self.exp_val = value
