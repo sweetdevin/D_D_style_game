@@ -1,3 +1,4 @@
+import inspect
 import asyncio
 import shelve
 from player_class import player
@@ -72,11 +73,7 @@ async def game_loop(player):
         #checking basic actions list
         if user_action in actions:
             if len(input_split) > 1:
-                target = input_split[1]
-                #special check for attack since it's async. plan on moving it soon
-                if user_action == 'attack': 
-                    asyncio.create_task(player.enter_combat(target))
-                    continue                  
+                target = input_split[1]                 
                 #try and accept for error handling target
                 try: 
                     player.basic_action[user_action][0](target)
@@ -106,27 +103,40 @@ async def game_loop(player):
                 target= input_split[1]
                 valid, target_obj = validate_target(player.location.contents, target)
                 if valid:
-                    #if valid performs attack, displays player mana and health 
-                    try:
-                        player.attacks[user_action](target_obj)
-                        victory = player.victory_check(target_obj)
-                        player.mana_display()
-                        player.health_display()
-                        if victory:
-                            continue
-                        #if target still alive print it's health
-                        target_obj.health_display()
-                        #if attack started combat and target lives start melle combat loop
-                        if player.in_combat == False:
-                            asyncio.create_task(player.enter_combat(target))
-                    #error handling if target was invalid
-                    except AttributeError:
-                        print('that target is not here')
+                    #if valid performs attack, displays player mana and health
+                    #checks if async
+                    is_async = inspect.iscoroutinefunction(player.attacks[user_action])
+                    if is_async: 
+                        try:
+                            asyncio.create_task(player.attacks[user_action](target_obj))
+                        except AttributeError:
+                            print('that target is not here')
+                    else:
+                        try:
+                            player.attacks[user_action](target_obj)
+                        except AttributeError:
+                            print('that target is not here')
+                    victory = player.victory_check(target_obj)
+                    player.mana_display()
+                    player.health_display()
+                    if victory:
+                        continue
+                    #if target still alive print it's health
+                    target_obj.health_display()
+                    #if attack started combat and target lives start melle combat loop
+                    if player.in_combat == False:                            
+                        asyncio.create_task(player.enter_combat(target))
                     continue
             # if no target was selects launch attack anyway
             #would like to link this to target in the combat loop but don't know how
             else:
-                #default target code would have to be here
+                #default target code would have to be here target attribute????
+                is_async = inspect.iscoroutinefunction(player.attacks[user_action])
+                if is_async: 
+                    try:
+                        asyncio.create_task(player.attacks[user_action]())
+                    except AttributeError:
+                        print('that target is not here')
                 try:
                     player.attacks[user_action]()
                 #error handling

@@ -31,7 +31,7 @@ class creature:
                        'defence value':1+self.stats['agi'] * 3}
     #basic attack function
     def basic_attack(self, target):
-        damage = (self.vitals_getter('attack value') + randint(0, 20)) - target.vitals_getter('defence value')
+        damage = (self.vitals_getter('attack value') + randint(0, 10)) - target.vitals_getter('defence value')
         if damage <= 0:
             print(f'{self.name} missed {target.name}')
         target.get_n_set('health', damage, True)
@@ -64,13 +64,17 @@ class creature:
     # a display mana function
     def mana_display(self):
         mana_percent = (self.vitals_getter('mana') / self.vitals_getter('mana max')) * 100
-        mana_list = ['%' for x in range(round(mana_percent/2))]
-        print(f'mana - {str(mana_list)}')
+        mana_str = ''
+        for x in range(round(mana_percent/2)):
+            mana_str = mana_str + '%'
+        print(f'mana - {mana_str}')
     # a display health function
     def health_display(self):
         health_percent = (self.vitals_getter('health') / self.vitals_getter('health max')) * 100
-        health_list = ['%' for x in range(round(health_percent/2))]
-        print(f'health - {str(health_list)}')
+        health_str = ''
+        for x in range(round(health_percent/2)):
+            health_str = health_str + '%'
+        print(f'health - {str(health_str)}')
     # an experience value modifier function
     def exp_val_setter(self, value):
         self.exp_val = value
@@ -89,11 +93,9 @@ class murlock(creature):
     def __init__(self, name, text) -> None:
         super().__init__(name, text)
         self.weapon = 'claws'
-        self.attacks = self.attacks | {'bubble attack': self.bubble_atk}
+        self.special_attacks = {'bubble attack': self.bubble_atk}
     #murlocks special attack
-    def bubble_atk(self, target, cost = 10):
-        if self.mana_check(target, cost) == True:
-            self.get_n_set('mana', cost, True)
+    def bubble_atk(self, target):
             damage = randint(0, 20) + 20
             target.get_n_set('health', damage, True)
             print(f'{self.name} launches bubbles at {target.name} for {damage} damage')
@@ -103,7 +105,7 @@ class barbarian(creature):
     def __init__(self, name, text):
         super().__init__(name, text)
         self.weapon = 'club'
-        self.attacks = self.attacks | {'leaping smash':self.leaping_smash}
+        self.special_attacks = {'leaping smash':self.leaping_smash}
     #barbarian special attacks
     def leaping_smash(self, target, cost = 5):
         if self.mana_check(target, cost) == True:

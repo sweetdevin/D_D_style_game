@@ -30,7 +30,7 @@ class player(creature):
         self.location = spawnnode
         self.basic_action = {'look' : [self.look, 'look around your current room'], 'travel': [self.traverse, 'travel to another room'],
                              'me': [self.me,'examine yourself and what you are carrying'], 'quit': [self.quit, 'quits the game'], 
-                              'attack': [self.enter_combat, 'attack a target'], 'examine': [self.examine, 'loot at objects in the room'], 
+                              'examine': [self.examine, 'loot at objects in the room'], 
                              'take' : [self.take_item, 'take an item from the room'], 'use': [self.use, 'use an item from  your inventory'],
                                'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu'],
                                'level': [self.level_up, 'if you have enough experience you can level up'], 
@@ -38,8 +38,9 @@ class player(creature):
         self.active = False
         self.in_combat = False
         self.alive = True
-        self.attacks = self.attacks | {'run': self.run, 'calm': self.calm,
-                                       'dev_touch': self.dev_touch, 'slam': self.slam}
+        self.attacks = self.attacks | {'attack': self.basic_attack, 'run': self.run, 'calm': self.calm,
+                                       'dev_touch': self.dev_touch, 'slam': self.slam,
+                                       'heal' : self.heal, 'warcry' : self.attack_buff}
         self.consumables = []
         self.experience = 0
         self.level = 1
@@ -223,12 +224,21 @@ class player(creature):
                 return
             #target melee attacks me
             target.basic_attack(self)
+            special_chance = randint(1, 10)
+            if special_chance == 5:
+                special_list = [x for x in target.special_attacks.keys()]
+                special_index = randint(0, len(special_list) - 1)
+                special_attack_str = special_list[special_index]
+                target.special_attacks[special_attack_str](self)
             #see if i lived
             death = self.death_check(target)
             #if i died end loop
             if death:
                 return
             #wait 5 seconds before repeating
+            self.mana_display()
+            self.health_display()
+            target.health_display()
             await asyncio.sleep(5)
     # a function to assign combat loop as a task to run in the background
     async def combat(self, target):
@@ -239,6 +249,18 @@ class player(creature):
         if valid:
             target.get_n_set('health', 20, True)
             print(f'you slam down hard on {target.name}')
+    async def attack_buff(self, target = None):
+        self.get_n_set('attack value', 10)
+        await asyncio.sleep(60)
+        self.get_n_set('attack value', 10, True)
+
+    #a simple heal for testing
+    def heal(self, target = None):
+
+        if target:
+            target.get_n_set('health', 5 + 5 * self.stats_getter('int'))
+        else:
+            self.get_n_set('health', 5 + 5 * self.stats_getter('int'))
     # a run function
     def run(self, target):
         self.in_combat = False
