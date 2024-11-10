@@ -37,8 +37,9 @@ class player(creature):
                                'search': [self.search, 'search a target to discover hidden things']}
         self.active = False
         self.in_combat = False
+        self.target = None
         self.alive = True
-        self.attacks = self.attacks | {'attack': self.basic_attack, 'run': self.run, 'calm': self.calm,
+        self.attacks = self.attacks | {'attack': self.enter_combat, 'run': self.run, 'calm': self.calm,
                                        'dev_touch': self.dev_touch, 'slam': self.slam,
                                        'heal' : self.heal, 'warcry' : self.attack_buff}
         self.consumables = []
@@ -46,6 +47,11 @@ class player(creature):
         self.level = 1
         self.active_effects = {'health': 0, 'health max': 0, 'mana':0, 'mana max':0,
                                'attack value':0, 'defence value':0}
+    #getters and setters for target
+    def target_setter(self, target_obj):
+        self.target = target_obj
+    def target_getter(self):
+        return self.target
     # level up function
     def level_up(self):
         #check experience
@@ -118,7 +124,7 @@ class player(creature):
                     if value.aggressive == True:
                         print(f'{value.name} attacks you')
                         self.in_combat = True
-                        self.combat_loop(value)
+                        self.basic_attack_loop(value)
         else: print('cannot travel that way') 
     # a simple look around or location command
     def look(self):
@@ -173,10 +179,13 @@ class player(creature):
         print(f'you attack {target}')
         #find target objects index
         target_index = [x.name for x in self.location.contents].index(target)
-        #turn mob aggressive
-        self.location.contents[target_index].aggressive = True
+        #select mob
+        target_obj = self.location.contents[target_index]
+        #set default target to mob
+        self.target_setter(target_obj)
+        target_obj.aggressive = True
         #call combat async function on target
-        await self.combat(self.location.contents[target_index])
+        await self.combat(self.target_getter())
     # victory check for comabt
     def victory_check(self, target):
         # check targets health is below 0
@@ -244,29 +253,33 @@ class player(creature):
     async def combat(self, target):
         asyncio.create_task(self.basic_attack_loop(target))
     # a simple special attack for testing
-    def slam(self, target):
+    def slam(self, target = None):
+        if target == None:
+            target = self.target_getter()
         valid = self.mana_check_n_set(5)
         if valid:
             target.get_n_set('health', 20, True)
             print(f'you slam down hard on {target.name}')
-    async def attack_buff(self, target = None):
-        self.get_n_set('attack value', 10)
+    async def attack_buff(self, target =None ):
+        if target == None:
+            target = self
+        target.get_n_set('attack value', 10)
         await asyncio.sleep(60)
-        self.get_n_set('attack value', 10, True)
+        target.get_n_set('attack value', 10, True)
 
     #a simple heal for testing
     def heal(self, target = None):
-
-        if target:
+            if target == None:
+                target = self
             target.get_n_set('health', 5 + 5 * self.stats_getter('int'))
-        else:
-            self.get_n_set('health', 5 + 5 * self.stats_getter('int'))
     # a run function
-    def run(self, target):
+    def run(self, target = None):
         self.in_combat = False
         self.traverse(target)
     # an end combat command
-    def calm(self, target):
+    def calm(self, target=None):
+        if target == None:
+            target = self.target_getter()
         chance = randint(0, 1)
         if chance == 0:
             print(f'{target.name} fails to calm down')
@@ -275,7 +288,9 @@ class player(creature):
             target.aggressive = False
             print(f'{target.name} calms down')
     # special developers spell to instakill
-    def dev_touch(self, target):
+    def dev_touch(self, target=None):
+            if target == None:
+                target = self.target_getter()
             print(f'with godlike powers {self.name}, points at {target.name} and says die')
             target.vitals_setter('health', 0)
     # examine items function

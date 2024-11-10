@@ -131,17 +131,20 @@ async def game_loop(player):
             #would like to link this to target in the combat loop but don't know how
             else:
                 #default target code would have to be here target attribute????
+                #if code is async handle here
                 is_async = inspect.iscoroutinefunction(player.attacks[user_action])
                 if is_async: 
                     try:
                         asyncio.create_task(player.attacks[user_action]())
                     except AttributeError:
                         print('that target is not here')
-                try:
-                    player.attacks[user_action]()
-                #error handling
-                except TypeError:
-                    print(f'{user_action} what?')
+                #calls code if sync
+                else:
+                    try:
+                        player.attacks[user_action]()
+                    #error handling
+                    except TypeError:
+                        print(f'{user_action} what?')
         else: print('please select an action')
 #a validate target function, similar to col_n_val, but just validating. 
 def validate_target(location, target):
