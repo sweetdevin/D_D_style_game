@@ -206,6 +206,10 @@ class player(creature):
             self.location.remove_item(target)
             #add corpse
             self.location.add_item(corpse)
+            #start respawn timer
+            asyncio.create_task(self.location.reswpawn())
+            #heal mob
+            target.refresh_vitals()
             #return that victory was achieved
             return True
     #death check
@@ -260,6 +264,7 @@ class player(creature):
         if valid:
             target.get_n_set('health', 20, True)
             print(f'you slam down hard on {target.name}')
+    # a simple async buff for testing
     async def attack_buff(self, target =None ):
         if target == None:
             target = self
@@ -329,6 +334,8 @@ class player(creature):
                 self.add_item(item_obj)
                 item_obj.use(self)
             print(f'you take {item_obj}')
+            #start respawn timer
+            asyncio.create_task(self.location.reswpawn())
         # if col and val fails print fail string
         else: print(value)
     # loot container function

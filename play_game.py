@@ -128,9 +128,7 @@ async def game_loop(player):
                         asyncio.create_task(player.enter_combat(target))
                     continue
             # if no target was selects launch attack anyway
-            #would like to link this to target in the combat loop but don't know how
             else:
-                #default target code would have to be here target attribute????
                 #if code is async handle here
                 is_async = inspect.iscoroutinefunction(player.attacks[user_action])
                 if is_async: 
