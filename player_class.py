@@ -198,7 +198,8 @@ class player(creature):
             #add experience based on level
             self.experience += target.exp_val * (1 - self.level/100)
             #instance a corpse from the mob
-            corpse = container(f'corpse of {target.name}', 'a bloody mangled corpse')
+            corpse = container('a fresh corpse', f'corpse of {target.name}')
+            asyncio.create_task(corpse.decay(self.location))
             #load corpse with mobs items
             for item in target.items:
                 corpse.add_items(item)
@@ -238,7 +239,7 @@ class player(creature):
             #target melee attacks me
             target.basic_attack(self)
             special_chance = randint(1, 10)
-            if special_chance == 5:
+            if special_chance == 5 & len(target.special_attacks) > 0:
                 special_list = [x for x in target.special_attacks.keys()]
                 special_index = randint(0, len(special_list) - 1)
                 special_attack_str = special_list[special_index]

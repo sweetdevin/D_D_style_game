@@ -10,6 +10,7 @@ class creature:
         self.vitals = vitals
         self.weapon = 'body'
         self.attacks = {'basic attack': self.basic_attack}
+        self.special_attacks = {}
         self.aggressive = False
         self.items = []
         self.exp_val = exp_val

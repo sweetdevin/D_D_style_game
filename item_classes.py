@@ -1,4 +1,5 @@
 import shelve
+import asyncio
 #items class
 class item_class():
     def __init__(self, name, text, stat = None, effect = None):
@@ -65,7 +66,28 @@ class container(item_class):
         self.is_locked = False
         print(f'you unlock {self}')
     def lock(self):
-        self.is_locked = True   
+        self.is_locked = True
+    # a decay method for corpses so they don't stack up
+    async def decay(self, location):
+        #replacement names for corpses 
+        decay_names = ['a new corpse', 'a old corpse', 'a rotten corpse']
+        count = 0
+        # while corpse has decay names left
+        while count < len(decay_names):
+            #wait 30 seconds
+            await asyncio.sleep(30)
+            #assing new name to corpse
+            self.name = decay_names[count]
+            #advance count
+            count += 1
+        #when names have been exhausted drop all contents
+        self.drop_contents(location)
+        #remove corpse from room
+        location.contents.remove(self)
+    # drops all contents in the room, designed for corpses at end of thier decay
+    def drop_contents(self, location):
+        for obj in self.contents:
+            location.add_item(obj)
 class fountain(item_class):
     def __init__(self, name, text):
         super().__init__(name, text)
