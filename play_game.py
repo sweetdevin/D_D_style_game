@@ -3,6 +3,7 @@ import asyncio
 import shelve
 from player_class import player
 from item_classes import container
+import re
 # a basic play game loop
 #a passive self healing heatlh and mana
 async def passive_heal(player):
@@ -73,26 +74,37 @@ async def game_loop(player):
         #checking basic actions list
         if user_action in actions:
             if len(input_split) > 1:
-                target = input_split[1]                 
+                target = input_split[1]
+                if user_action == 'travel':
+                    for key, pattern in player.location.exits_regex.items():
+                       result = re.search(pattern, target)
+                       if result:
+                           player.traverse(key)
+                           continue        
                 #try and accept for error handling target
-                try: 
-                    player.basic_action[user_action][0](target)
+                valid, target_obj = validate_target(player.location.contents, target)
+                if valid:
+                    try: 
+                        player.basic_action[user_action][0](target_obj)
+                    except TypeError:
+                        print(f"{user_action} what?")
+                    continue
+            else:
+                try:
+                    player.basic_action[user_action][0]()
                 except TypeError:
-                    print("what?")
-                continue
-            try:
-                player.basic_action[user_action][0]()
-            except TypeError:
-                print('what?')
-                continue
+                    print(f'{user_action} what?')
+                    continue
         #checking against room actions I might need to build this out more with error handing
         elif user_action in room_actions:
             if len(input_split) > 1:
                 target = input_split[1]
-                try: 
-                    player.location.room_actions[user_action](target)
-                except AttributeError:
-                    print(f"try just {user_action}")
+                valid, target_obj = validate_target(player.location.contents, target)
+                if valid:
+                    try: 
+                        player.location.room_actions[user_action](target_obj)
+                    except AttributeError:
+                        print(f"try just {user_action}")
                 continue
             player.location.room_actions[user_action](player)
         #checking against attacks
@@ -125,36 +137,40 @@ async def game_loop(player):
                     target_obj.health_display()
                     #if attack started combat and target lives start melle combat loop
                     if player.in_combat == False:                            
-                        asyncio.create_task(player.enter_combat(target))
+                        asyncio.create_task(player.enter_combat(target_obj))
                     continue
             # if no target was selects launch attack anyway
             else:
                 #if code is async handle here
                 is_async = inspect.iscoroutinefunction(player.attacks[user_action])
                 if is_async: 
-                    try:
-                        asyncio.create_task(player.attacks[user_action]())
-                    except AttributeError:
-                        print('that target is not here')
+                    asyncio.create_task(player.attacks[user_action]())
+                    #except AttributeError:
+                    #   print('that target is not here')
                 #calls code if sync
                 else:
-                    try:
-                        player.attacks[user_action]()
+                    #try:
+                   player.attacks[user_action]()
                     #error handling
-                    except TypeError:
-                        print(f'{user_action} what?')
+                    #except TypeError:
+                    #    print(f'{user_action} what?')
         else: print('please select an action')
 #a validate target function, similar to col_n_val, but just validating. 
-def validate_target(location, target):
-    #get names list from location parameter
-    names = [x.name for x in location]
-    #check if target in name
-    if target in names:
-        #get index for name it exists
-        index = names.index(target)
-        #get target object from location
-        target_obj = location[index]
-        return True, target_obj
-    else: return False, None
+def validate_target(location, target_str):
+    #get regex patterns from location parameter
+    regex_patterns = [x.regex for x in location]
+    # check regex for match
+    index = 0
+    for pattern in regex_patterns:
+        #if match use index to select target object, return turn and object
+        result = re.search(pattern, target_str)
+        if result:
+            target_obj = location[index]
+            return True, target_obj
+        #else advance index and try again
+        else:
+            index +=1
+    # if no pattern matches return false and none
+    return False, None
 #proof of concept test functions
 play_game()

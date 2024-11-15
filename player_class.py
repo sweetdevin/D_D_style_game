@@ -103,9 +103,6 @@ class player(creature):
     def traverse(self, target=None):
         #print travel directions, collect input
         direction_list = self.location.get_exits()
-        if target not in direction_list:
-            print(direction_list)
-            target = input('which way? \n')
         # check to see if door blocking
         door_list = [x for x in self.location.contents if type(x) == door]
         door_blocking = [x.exit for x in door_list]
@@ -158,7 +155,7 @@ class player(creature):
         print('so long and thanks for all the fish')
     #combat target aquisition ends by calling combat loop
     async def enter_combat(self, target = None):
-        #print targets
+        '''#print targets
         targets = [x.name for x in self.location.contents if type(x).__bases__[0] == creature or type(x) == creature]
         #if no target designated check room for possible targets
         if target == None:
@@ -171,19 +168,22 @@ class player(creature):
                 print(targets)
         #select and validate targets
             target = input('attack what? \n')
-        if target not in targets:
+        if target not in self.location.contents:
             print('that target does not exist here')
+            return'''
+        #if target valid set combat to True
+        if target == None:
+            print('attack what?')
             return
-        #if target valid set combat to True, and print
         self.in_combat = True
-        print(f'you attack {target}')
-        #find target objects index
+        '''#find target objects index
         target_index = [x.name for x in self.location.contents].index(target)
         #select mob
-        target_obj = self.location.contents[target_index]
+        target_obj = self.location.contents[target_index]'''
         #set default target to mob
-        self.target_setter(target_obj)
-        target_obj.aggressive = True
+        self.target_setter(target)
+        target.aggressive = True
+        print(f'you attack {target.name}')
         #call combat async function on target
         await self.combat(self.target_getter())
     # victory check for comabt
@@ -199,6 +199,7 @@ class player(creature):
             self.experience += target.exp_val * (1 - self.level/100)
             #instance a corpse from the mob
             corpse = container('a fresh corpse', f'corpse of {target.name}')
+            #start corpse decay timer
             asyncio.create_task(corpse.decay(self.location))
             #load corpse with mobs items
             for item in target.items:
@@ -301,55 +302,52 @@ class player(creature):
             target.vitals_setter('health', 0)
     # examine items function
     def examine(self, target = None):
-        #col and val fun returns either success and index or fail and return string
+        '''#col and val fun returns either success and index or fail and return string
         success, value = col_n_validate(self.location.contents, 'examine', 'item', target)
         if success:
             # selects item obj and print name and text
-            item_obj = self.location.contents[value]
-            print(f'you examine {item_obj}')
-            print(item_obj.text)
-            if type(item_obj) == container:
-                # if item_obj is a container type print contents
-                if item_obj.is_locked == True:
-                    print('is locked')
-                    return
-                print('contains')
-                if len(item_obj.contents) == 0:
-                    print('nothing')
-                else: print([x.name for x in item_obj.contents])
-        # print value if col and val fails
-        else: print(value)
+            item_obj = self.location.contents[value]'''
+        print(f'you examine {target}')
+        print(target.text)
+        if type(target) == container:
+            # if item_obj is a container type print contents
+            if target.is_locked == True:
+                print('is locked')
+                return
+            print('contains')
+            if len(target.contents) == 0:
+                print('nothing')
+            else: print([x.name for x in target.contents])
     # take item function    
     def take_item(self, target = None):
-        # col and val function
+        '''# col and val function
         success, value = col_n_validate(self.location.contents,'take', 'item', target, consumable, equipment, key)
         if success:
-            # if success of col and val, select item obj, remove from room
+            # if success of col and val, select item obj, remove from room'''
             # add to player inventory, link item obj to player
-            item_obj = self.location.contents[value]
-            self.location.contents.remove(item_obj)
-            item_obj.player_link(self)
-            if type(item_obj) == consumable or key:
-                self.add_consumable(item_obj)
-            elif type(item_obj) == equipment:
-                self.add_item(item_obj)
-                item_obj.use(self)
-            print(f'you take {item_obj}')
+        if type(target) in [consumable, equipment, key]:
+            self.location.contents.remove(target)
+            target.player_link(self)
+            if type(target) == consumable or key:
+                self.add_consumable(target)
+            elif type(target) == equipment:
+                self.add_item(target)
+                target.use(self)
+            print(f'you take {target.name}')
             #start respawn timer
             asyncio.create_task(self.location.reswpawn())
-        # if col and val fails print fail string
-        else: print(value)
     # loot container function
     def loot(self, target = None):
-        # col and val function
+        '''# col and val function
         success, value =col_n_validate(self.location.contents, 'loot', 'containers', target, container)
         if success:
             # if success, take all from cont obj, add each item to player,
             # link items, remove item from container
-            cont_obj = self.location.contents[value]
-            if cont_obj.is_locked == True:
+            cont_obj = self.location.contents[value]'''
+        if type(target) == container:
+            if target.is_locked == True:
                 print('that container in locked')
-            for item in [x for x in cont_obj.contents]:
+            for item in [x for x in target.contents]:
                 item.player_link(self)
                 if type(item) == equipment:
                     self.add_item(item)
@@ -357,9 +355,7 @@ class player(creature):
                 elif type(item) == consumable or key:
                     self.add_consumable(item)
                 print(f'you take {item}')
-                cont_obj.contents.remove(item)
-        # if success fails print fail string
-        else: print(value)
+                target.contents.remove(item)
     # use item function 
     def use(self, target = None):
         # col and val function

@@ -2,12 +2,11 @@ import shelve
 import asyncio
 #items class
 class item_class():
-    def __init__(self, name, text, stat = None, effect = None):
+    def __init__(self, name, text):
         self.name = name
         self.text = text
-        self.stat = stat
-        self.effect = effect
         self.player = None
+        self.regex = ''
     def __repr__(self) -> str:
         return self.name
     # link to player function
@@ -15,16 +14,22 @@ class item_class():
         self.player = player
     def player_remove(self):
         self.player=None
+    def set_regex(self, regex_pattern):
+        self.regex = regex_pattern
 # equipment subclass
 class equipment(item_class):
     def __init__(self, name, text, stat=None, effect=None):
-        super().__init__(name, text, stat, effect)
+        super().__init__(name, text)
+        self.stat = stat
+        self.effect = effect
     def use(self):
         self.player.set_active(self.stat, self.effect)   
 # consumable subclass 
 class consumable(item_class):
     def __init__(self, name, text, stat=None, effect=None):
-        super().__init__(name, text, stat, effect) 
+        super().__init__(name, text)
+        self.stat = stat
+        self.effect = effect 
     def use(self):
         self.player.get_n_set(self.stat, self.effect)
         print(f'plus {self.effect} to {self.stat}')
@@ -116,13 +121,20 @@ class save_altar(item_class):
             db[player.name] = player
 # instancing obejects
 sm_box_01 = container('small lockbox', 'a small lockbox for personal effects', True, 1)
-sm_key_01 = key('small key', 'a simple small brass key')
+sm_box_01.set_regex(r'^lock?box$')
+sm_key_01 = key('a small key', 'a simple small brass key')
+sm_key_01.set_regex(r'^a? small? key$')
 sm_key_01.link_obj(sm_box_01)
 sm_health_potion = consumable('health potion', 'a vial of red bubbly liquid', 'health', 50)
+sm_health_potion.set_regex(r'^(health|potion|health potion)$')
 sm_box_01.add_items(sm_health_potion)
 west_door = door('a large door to the west', 'a large door made of woven brances', 'west', 2)
+west_door.set_regex(r'^west? door$')
 west_door_key_green =key('green key', 'a key made of a strange green rock')
+west_door_key_green.set_regex(r'^green? key$')
 west_door_key_green.link_obj(west_door)
 west_door_key_blue = key('a blue key', 'a key made of a strange blue rock')
+west_door_key_blue.set_regex(r'^blue? key$')
 west_door_key_blue.link_obj(west_door)
 save_point = save_altar('a stange glowing altar', 'you sense this altar would "save" your current state')
+save_point.set_regex(r'^(stange|glowing) altar$')

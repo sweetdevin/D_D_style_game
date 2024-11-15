@@ -5,12 +5,16 @@ import asyncio
 #opposites direction dictionary needed for linking nodes via add exit method
 opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west":'east',
              'north':'south', 'south':'north'}
+# regex exits dictionary
+regex_exits_dict = {'east': r'^east{0,1}$', 'west': r'^west{0,1}$', 'north':r'^north{0,1}$',
+                    'south':r'^south{0,1}$', 'gates': r'^gates{0,1}$', 'up':r'^up?$', 'down':r'^down{0,1}$'}
 #Roomnode class 
 class roomnode:
     def __init__(self, description):
         self.description = description
         self.exits = {}
         self.hidden_exits = {}
+        self.exits_regex = {}
         self.contents = []
         self.spawn_contents = []
         self.room_actions = {}
@@ -44,7 +48,9 @@ class roomnode:
             linking_node.add_hidden(self)
         else:
             self.exits[direction] = linking_node
+            self.exits_regex[direction] = regex_exits_dict[direction]
             linking_node.exits[op_dir] = self
+            linking_node.exits_regex[op_dir] = regex_exits_dict[op_dir]
     def remove_exit(self, key):
         self.exits.pop(key)
     def get_exits(self):

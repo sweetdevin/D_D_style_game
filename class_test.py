@@ -14,16 +14,21 @@ class creature:
         self.aggressive = False
         self.items = []
         self.exp_val = exp_val
+        self.regex = ''
     def __repr__(self):
         return f'''{self.name} 
         health = {self.vitals_getter('health')} of {self.vitals_getter('health max')} 
         mana = {self.vitals_getter('mana')} of {self.vitals_getter('mana max')}
         attack = {self.vitals_getter('attack value')}
         defence = {self.vitals_getter('defence value')}'''
+    #custom copy functions to seperate the vitals
     def __copy__(self):
         new_instance = type(self)(self.name, self.text, self.vitals.copy(), self.exp_val)
         new_instance.refresh_vitals()
         return new_instance
+    # set regex function
+    def set_regex(self, regex_pattern):
+        self.regex = regex_pattern
     #sets vitals based off of stats
     def refresh_vitals(self):
         self.vitals = {'health max': 25 + (self.stats['str'] * 25), 'health': 25 + (self.stats['str'] * 25),
@@ -118,18 +123,25 @@ class barbarian(creature):
 # creating creature class objects and item class objects
 #setting values for creature objects and adding item objects to creatures
 rat= creature('rat', 'a large disgusting rat')
+rat.set_regex(r'^ra?t?$')
 rat.refresh_vitals()
 rat.exp_val_setter(30)
 dreadclaw = murlock('dreadclaw murlock', murlock_text + "\n these murlocks have large claws.")
+dreadclaw.set_regex(r'\b(dread\w*|murlock\w*)\b')
 ring_of_health = equipment('ring of health', 'a glowing red ring', 'health max', 300)
+ring_of_health.set_regex(r'^ring( of health| health)?$')
 health_potion = consumable('health potion', 'a vial of a red bubbly liquid', 'health', 50)
+health_potion.set_regex(r'^(health|potion|health potion)$')
 dreadclaw.add_item(health_potion)
 snagletooth = murlock('snagletooth murlock', murlock_text + "\n These murlocks have long snarly teeth.")
+snagletooth.set_regex(r'\b(snagle\w*|murlock\w*)\b')
 snagletooth.add_item(health_potion)
 snagletooth.add_item(ring_of_health)
 dreadclaw.exp_val_setter(100)
 mana_potion = consumable('mana potion', 'a vial of bubbly blue liquid', 'mana', 20)
+mana_potion.set_regex(r'^(mana|potion|mana potion)$')
 mana_charm = equipment('mana charm', 'a plusing carved crystal rune', 'mana max', 30)
+mana_charm.set_regex(r'^(mana|charm|mana charm)$')
 dreadclaw.add_item(mana_potion)
 dreadclaw.add_item(mana_potion)
 snagletooth.refresh_vitals()
