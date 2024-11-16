@@ -75,12 +75,10 @@ async def game_loop(player):
         if user_action in actions:
             if len(input_split) > 1:
                 target = input_split[1]
-                if user_action == 'travel':
-                    for key, pattern in player.location.exits_regex.items():
-                       result = re.search(pattern, target)
-                       if result:
-                           player.traverse(key)
-                           continue        
+                #rewrite traverse to do the regex itself..... pass the raw string then it functions same as search
+                if user_action == 'travel' or user_action == 'search':
+                    player.basic_action[user_action][0](target)
+                    continue        
                 #try and accept for error handling target
                 valid, target_obj = validate_target(player.location.contents, target)
                 if valid:

@@ -3,6 +3,7 @@ from rooms import spawnnode
 from random import randint
 from item_classes import item_class, consumable, container, equipment, key, door
 import asyncio
+import re
 creature_classes = [creature, murlock]
 # collect and validate player inputs function 
 def col_n_validate(location, func_name_str, fail_str, target = None, *args):
@@ -101,7 +102,13 @@ class player(creature):
 
     # a travel function to move the play    
     def traverse(self, target=None):
-        #print travel directions, collect input
+        if target == None:
+            print('travel where?')
+            return
+        for key, pattern in self.location.exits_regex.items():
+                result = re.match(pattern, target)
+                if result:
+                    target = key
         direction_list = self.location.get_exits()
         # check to see if door blocking
         door_list = [x for x in self.location.contents if type(x) == door]
@@ -199,6 +206,7 @@ class player(creature):
             self.experience += target.exp_val * (1 - self.level/100)
             #instance a corpse from the mob
             corpse = container('a fresh corpse', f'corpse of {target.name}')
+            corpse.set_regex(r'^corpse$')
             #start corpse decay timer
             asyncio.create_task(corpse.decay(self.location))
             #load corpse with mobs items
@@ -326,7 +334,9 @@ class player(creature):
             # if success of col and val, select item obj, remove from room'''
             # add to player inventory, link item obj to player
         if type(target) in [consumable, equipment, key]:
-            self.location.contents.remove(target)
+            print(target)
+            print(self.location.contents)
+            self.location.remove_item(target)
             target.player_link(self)
             if type(target) == consumable or key:
                 self.add_consumable(target)
@@ -336,6 +346,8 @@ class player(creature):
             print(f'you take {target.name}')
             #start respawn timer
             asyncio.create_task(self.location.reswpawn())
+        else:
+            print('you cannot take that')
     # loot container function
     def loot(self, target = None):
         '''# col and val function
@@ -365,13 +377,22 @@ class player(creature):
             item.use()
         else: print(value)
     # search function
-    def search(self, target):
+    def search(self, target_str):
         #only error handling since user since objects are hidden
-        try:
-            found_obj = self.location.search[target]
-        except KeyError:
-            print('search what?')
-            return
+        for pattern, value in self.location.search.items():
+            valid = re.search(pattern, target_str)
+            if valid:
+                found_obj = value
+                if type(found_obj) == str:
+                    #print string if string and return
+                    print(found_obj)
+                    return
+                #if object call discover object fuction on object
+                else:
+                    self.location.discover(found_obj)
+                    return
+        print('search what?')
+        return
         #if search works test if it returns an object or a string
         if type(found_obj) == str:
             #print string if string and return

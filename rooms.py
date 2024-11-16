@@ -2,12 +2,13 @@ from class_test import snagletooth, health_potion, dreadclaw, rat, ring_of_healt
 from item_classes import fountain, sm_box_01, sm_key_01, west_door, west_door_key_blue, west_door_key_green, save_point
 import copy
 import asyncio
+import re
 #opposites direction dictionary needed for linking nodes via add exit method
 opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west":'east',
              'north':'south', 'south':'north'}
 # regex exits dictionary
-regex_exits_dict = {'east': r'^east{0,1}$', 'west': r'^west{0,1}$', 'north':r'^north{0,1}$',
-                    'south':r'^south{0,1}$', 'gates': r'^gates{0,1}$', 'up':r'^up?$', 'down':r'^down{0,1}$'}
+regex_exits_dict = {'east': r'^e(a(s(t)?)?)?$', 'west': r'^w(e(s(t)?)?)?$', 'north':r'^n(o(r(t(h)?)?)?)?$',
+                    'south':r'^s(o(u(t(h)?)?)?)?$', 'gates': r'^g(a(t(e(s)?)?)?)?$', 'up':r'up?$', 'down':r'd(o(w(n)?)?)?$'}
 #Roomnode class 
 class roomnode:
     def __init__(self, description):
@@ -95,22 +96,23 @@ class roomnode:
             print(f'you found {item_obj.name}')
     #add searchable targets to room
     def add_search(self, search_string, search_result):
-        self.search[search_string] = search_result
+        compiled_str = re.compile(search_string)
+        self.search[compiled_str] = search_result
 #build rooms, linking rooms, adding objects, adding methods
 tower_g_text = '''you stand at the gates outside of a large tower.
 On one side of the gates there is a trashcan. On the other there is a pile of sticks'''
 tower_g =roomnode(tower_g_text)
 tower_g.add_spawn_item(rat)
 tower_g.add_spawn_hidden(health_potion)
-tower_g.add_search('pile', health_potion)
-tower_g.add_search('trashcan', 'nothing of value, just trash')
+tower_g.add_search(r'^pile', health_potion)
+tower_g.add_search(r'^trashcan', 'nothing of value, just trash')
 tower_1_text = """you stand on the ground floor of a large stone tower.
 There is a small lockbox by the door, and a wooden desk in the middle of the room"""
 tower_1 = roomnode(tower_1_text)
 tower_1.add_spawn_item(copy.copy(rat))
 tower_1.add_spawn_item(sm_box_01)
 tower_1.add_spawn_hidden(sm_key_01)
-tower_1.add_search('desk', sm_key_01)
+tower_1.add_search(r'^desk', sm_key_01)
 tower_2_text = 'you stand on the second floor of a large stone tower'
 tower_2 = roomnode(tower_2_text)
 tower_2.add_spawn_item(copy.copy(rat))
@@ -134,7 +136,7 @@ tower_1.add_exits(tower_2,'up')
 tower_2.add_exits(tower_3, 'up')
 tower_3.add_exits(tower_4, 'up', True)
 tower_3.add_spawn_hidden(tower_4)
-tower_3.add_search('painting', tower_4)
+tower_3.add_search(r'^painting', tower_4)
 spawnnode.add_spawn_item(health_potion)
 swamp_west = roomnode('the swampland splits here with passages going both north and south')
 swamp_west_1 = roomnode('an alter in the middle of the swamp')
