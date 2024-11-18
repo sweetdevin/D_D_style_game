@@ -6,7 +6,7 @@ import asyncio
 import re
 creature_classes = [creature, murlock]
 # collect and validate player inputs function 
-def col_n_validate(location, func_name_str, fail_str, target = None, *args):
+'''def col_n_validate(location, func_name_str, fail_str, target = None, *args):
     # filters options if needed args are class types to include
 
     names = [x.name for x in location]
@@ -22,7 +22,25 @@ def col_n_validate(location, func_name_str, fail_str, target = None, *args):
         index = [x.name for x in location].index(target)
         return True, index
     #return fail
-    return False, f'that {fail_str} is not here'
+    return False, f'that {fail_str} is not here'''
+#a validate target function, similar to col_n_val, but just validating. 
+def validate_target(location, target_str):
+    #get regex patterns from location parameter
+    regex_patterns = [x.regex for x in location]
+    # check regex for match
+    index = 0
+    for pattern in regex_patterns:
+        #if match use index to select target object, return turn and object
+        result = re.search(pattern, target_str)
+        if result:
+            target_obj = location[index]
+            return True, target_obj
+        #else advance index and try again
+        else:
+            index +=1
+    # if no pattern matches return false and none
+    return False, None
+
 player_text =  'yourself, look in a mirror'
 class player(creature):
     def __init__(self, name, text=player_text) -> None:
@@ -119,6 +137,7 @@ class player(creature):
             return
         #validate direction
         elif target in direction_list:
+            self.in_combat = False
             self.location = self.location.exits[target]
             print(f'you travel {target}')
             self.look()
@@ -127,8 +146,7 @@ class player(creature):
                 if type(value) == creature or type(value).__bases__[0] == creature:
                     if value.aggressive == True:
                         print(f'{value.name} attacks you')
-                        self.in_combat = True
-                        self.basic_attack_loop(value)
+                        self.enter_combat(value)
         else: print('cannot travel that way') 
     # a simple look around or location command
     def look(self):
@@ -161,38 +179,18 @@ class player(creature):
         self.active = False
         print('so long and thanks for all the fish')
     #combat target aquisition ends by calling combat loop
-    async def enter_combat(self, target = None):
-        '''#print targets
-        targets = [x.name for x in self.location.contents if type(x).__bases__[0] == creature or type(x) == creature]
-        #if no target designated check room for possible targets
-        if target == None:
-            #if no targets possible print and return
-            if len(targets) == 0:
-                print('there is nothing here to attack')
-                return 
-            #if targets are possible print targets
-            else:
-                print(targets)
-        #select and validate targets
-            target = input('attack what? \n')
-        if target not in self.location.contents:
-            print('that target does not exist here')
-            return'''
+    def enter_combat(self, target = None):
         #if target valid set combat to True
         if target == None:
             print('attack what?')
             return
         self.in_combat = True
-        '''#find target objects index
-        target_index = [x.name for x in self.location.contents].index(target)
-        #select mob
-        target_obj = self.location.contents[target_index]'''
         #set default target to mob
         self.target_setter(target)
         target.aggressive = True
         print(f'you attack {target.name}')
         #call combat async function on target
-        await self.combat(self.target_getter())
+        self.combat(self.target_getter())
     # victory check for comabt
     def victory_check(self, target):
         # check targets health is below 0
@@ -264,7 +262,7 @@ class player(creature):
             target.health_display()
             await asyncio.sleep(5)
     # a function to assign combat loop as a task to run in the background
-    async def combat(self, target):
+    def combat(self, target):
         asyncio.create_task(self.basic_attack_loop(target))
     # a simple special attack for testing
     def slam(self, target = None):
@@ -289,6 +287,11 @@ class player(creature):
             target.get_n_set('health', 5 + 5 * self.stats_getter('int'))
     # a run function
     def run(self, target = None):
+        if target == None:
+            exit_list = self.location.get_exits()
+            random_int = randint(0, len(exit_list) -1)
+            random_exit = exit_list[random_int]
+            target = random_exit
         self.in_combat = False
         self.traverse(target)
     # an end combat command
@@ -310,11 +313,18 @@ class player(creature):
             target.vitals_setter('health', 0)
     # examine items function
     def examine(self, target = None):
-        '''#col and val fun returns either success and index or fail and return string
-        success, value = col_n_validate(self.location.contents, 'examine', 'item', target)
-        if success:
-            # selects item obj and print name and text
-            item_obj = self.location.contents[value]'''
+        if target == None:
+            print('examine what?')
+            return
+        valid_1, target_1 = validate_target(self.location.contents, target)
+        valid_2, target_2 = validate_target(self.consumables, target)
+        if valid_1:
+            target = target_1
+        elif valid_2:
+            target = target_2
+        else: 
+            print('examine what?')
+            return
         print(f'you examine {target}')
         print(target.text)
         if type(target) == container:
@@ -328,38 +338,37 @@ class player(creature):
             else: print([x.name for x in target.contents])
     # take item function    
     def take_item(self, target = None):
-        '''# col and val function
-        success, value = col_n_validate(self.location.contents,'take', 'item', target, consumable, equipment, key)
-        if success:
-            # if success of col and val, select item obj, remove from room'''
             # add to player inventory, link item obj to player
-        if type(target) in [consumable, equipment, key]:
-            print(target)
-            print(self.location.contents)
-            self.location.remove_item(target)
-            target.player_link(self)
-            if type(target) == consumable or key:
-                self.add_consumable(target)
-            elif type(target) == equipment:
-                self.add_item(target)
-                target.use(self)
-            print(f'you take {target.name}')
+        valid, target_obj = validate_target(self.location.contents, target)
+        if not valid:
+            print('you cannot take that')
+            return
+        if type(target_obj) in [consumable, equipment, key]:
+            self.location.remove_item(target_obj)
+            target_obj.player_link(self)
+            if type(target_obj) == consumable or key:
+                self.add_consumable(target_obj)
+            elif type(target_obj) == equipment:
+                self.add_item(target_obj)
+                target_obj.use(self)
+            print(f'you take {target_obj.name}')
             #start respawn timer
             asyncio.create_task(self.location.reswpawn())
         else:
             print('you cannot take that')
     # loot container function
     def loot(self, target = None):
-        '''# col and val function
-        success, value =col_n_validate(self.location.contents, 'loot', 'containers', target, container)
-        if success:
-            # if success, take all from cont obj, add each item to player,
-            # link items, remove item from container
-            cont_obj = self.location.contents[value]'''
-        if type(target) == container:
-            if target.is_locked == True:
+        if target == None:
+            print('loot what?')
+            return
+        valid, target_obj = validate_target(self.location.contents, target)
+        if not valid:
+            print('you cannot loot that')
+            return
+        if type(target_obj) == container:
+            if target_obj.is_locked == True:
                 print('that container in locked')
-            for item in [x for x in target.contents]:
+            for item in [x for x in target_obj.contents]:
                 item.player_link(self)
                 if type(item) == equipment:
                     self.add_item(item)
@@ -367,15 +376,17 @@ class player(creature):
                 elif type(item) == consumable or key:
                     self.add_consumable(item)
                 print(f'you take {item}')
-                target.contents.remove(item)
+                target_obj.contents.remove(item)
     # use item function 
     def use(self, target = None):
-        # col and val function
-        success, value = col_n_validate(self.consumables, 'use', 'item', target)
-        if success:
-            item = self.consumables.pop(value)
-            item.use()
-        else: print(value)
+        if target == None:
+            print('use what?')
+            return
+        valid, target_obj = validate_target(self.consumables, target)
+        if valid:
+            self.consumables.remove(target_obj)
+            target_obj.use()
+        else: print('use what?')
     # search function
     def search(self, target_str):
         #only error handling since user since objects are hidden
@@ -393,11 +404,3 @@ class player(creature):
                     return
         print('search what?')
         return
-        #if search works test if it returns an object or a string
-        if type(found_obj) == str:
-            #print string if string and return
-            print(found_obj)
-            return
-        #if object call discover object fuction on object
-        else:
-            self.location.discover(found_obj)

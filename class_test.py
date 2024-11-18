@@ -3,7 +3,7 @@ from item_classes import consumable, equipment
 # initial living creature class all player and 
 # npc will have this super class as of right now
 class creature:
-    def __init__(self, name, text, vitals={}, exp_val = 10) -> None:
+    def __init__(self, name, text, vitals={}, exp_val = 10, regex = None):
         self.name = name
         self.text = text
         self.stats = {'str':1, 'agi':1, 'int':1}
@@ -14,7 +14,7 @@ class creature:
         self.aggressive = False
         self.items = []
         self.exp_val = exp_val
-        self.regex = ''
+        self.regex = regex
     def __repr__(self):
         return f'''{self.name} 
         health = {self.vitals_getter('health')} of {self.vitals_getter('health max')} 
@@ -23,7 +23,7 @@ class creature:
         defence = {self.vitals_getter('defence value')}'''
     #custom copy functions to seperate the vitals
     def __copy__(self):
-        new_instance = type(self)(self.name, self.text, self.vitals.copy(), self.exp_val)
+        new_instance = type(self)(self.name, self.text, self.vitals.copy(), self.exp_val, self.regex)
         new_instance.refresh_vitals()
         return new_instance
     # set regex function

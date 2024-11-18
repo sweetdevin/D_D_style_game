@@ -75,18 +75,8 @@ async def game_loop(player):
         if user_action in actions:
             if len(input_split) > 1:
                 target = input_split[1]
-                #rewrite traverse to do the regex itself..... pass the raw string then it functions same as search
-                if user_action == 'travel' or user_action == 'search':
-                    player.basic_action[user_action][0](target)
-                    continue        
-                #try and accept for error handling target
-                valid, target_obj = validate_target(player.location.contents, target)
-                if valid:
-                    try: 
-                        player.basic_action[user_action][0](target_obj)
-                    except TypeError:
-                        print(f"{user_action} what?")
-                    continue
+                player.basic_action[user_action][0](target)
+                continue        
             else:
                 try:
                     player.basic_action[user_action][0]()
@@ -111,6 +101,9 @@ async def game_loop(player):
             if len(input_split) > 1:
                 #check to make sure target is vaild
                 target= input_split[1]
+                if user_action == 'run':
+                    player.attacks[user_action](target)
+                    continue
                 valid, target_obj = validate_target(player.location.contents, target)
                 if valid:
                     #if valid performs attack, displays player mana and health
@@ -135,7 +128,7 @@ async def game_loop(player):
                     target_obj.health_display()
                     #if attack started combat and target lives start melle combat loop
                     if player.in_combat == False:                            
-                        asyncio.create_task(player.enter_combat(target_obj))
+                        player.enter_combat(target_obj)
                     continue
             # if no target was selects launch attack anyway
             else:
