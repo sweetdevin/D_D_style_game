@@ -5,39 +5,29 @@ from item_classes import item_class, consumable, container, equipment, key, door
 import asyncio
 import re
 creature_classes = [creature, murlock]
-# collect and validate player inputs function 
-'''def col_n_validate(location, func_name_str, fail_str, target = None, *args):
-    # filters options if needed args are class types to include
-
-    names = [x.name for x in location]
-    if args:
-        names = [x.name for x in location if type(x) in args]
-    if target == None:
-        if len(names) == 0:
-            return False, "you can't do that here"    
-        print(names)
-        target = input(f'{func_name_str} what? \n')
-    #validate player input is valid returns index of input if true
-    if target in names:
-        index = [x.name for x in location].index(target)
-        return True, index
-    #return fail
-    return False, f'that {fail_str} is not here'''
-#a validate target function, similar to col_n_val, but just validating. 
+#a validate target function 
 def validate_target(location, target_str):
+    #if location a dict
+    if type(location) == dict:
+        #
+        for pattern,value in location.items():
+            result = re.search(pattern, target_str)
+            if result:
+                return True, value
+    elif type(location) == list:
     #get regex patterns from location parameter
-    regex_patterns = [x.regex for x in location]
-    # check regex for match
-    index = 0
-    for pattern in regex_patterns:
-        #if match use index to select target object, return turn and object
-        result = re.search(pattern, target_str)
-        if result:
-            target_obj = location[index]
-            return True, target_obj
-        #else advance index and try again
-        else:
-            index +=1
+        regex_patterns = [x.regex for x in location]
+        # check regex for match
+        index = 0
+        for pattern in regex_patterns:
+            #if match use index to select target object, return turn and object
+            result = re.search(pattern, target_str)
+            if result:
+                target_obj = location[index]
+                return True, target_obj
+            #else advance index and try again
+            else:
+                index +=1
     # if no pattern matches return false and none
     return False, None
 
@@ -67,7 +57,7 @@ class player(creature):
         self.active_effects = {'health': 0, 'health max': 0, 'mana':0, 'mana max':0,
                                'attack value':0, 'defence value':0}
     #getters and setters for target
-    def target_setter(self, target_obj):
+    def target_setter(self, target_obj = None):
         self.target = target_obj
     def target_getter(self):
         return self.target
@@ -123,10 +113,9 @@ class player(creature):
         if target == None:
             print('travel where?')
             return
-        for key, pattern in self.location.exits_regex.items():
-                result = re.match(pattern, target)
-                if result:
-                    target = key
+        valid, target = validate_target(self.location.exits_regex, target)
+        if not valid:
+            print('travel where?')
         direction_list = self.location.get_exits()
         # check to see if door blocking
         door_list = [x for x in self.location.contents if type(x) == door]
@@ -146,7 +135,7 @@ class player(creature):
                 if type(value) == creature or type(value).__bases__[0] == creature:
                     if value.aggressive == True:
                         print(f'{value.name} attacks you')
-                        self.enter_combat(value)
+                        self.enter_combat(value.name)
         else: print('cannot travel that way') 
     # a simple look around or location command
     def look(self):
@@ -184,6 +173,11 @@ class player(creature):
         if target == None:
             print('attack what?')
             return
+        if target:
+            valid, target = validate_target(self.location.contents, target)
+            if not valid:
+                print('that target is not here')
+                return
         self.in_combat = True
         #set default target to mob
         self.target_setter(target)
@@ -200,6 +194,7 @@ class player(creature):
             #remove from combat loop
             self.in_combat = False
             target.aggressive = False
+            self.target_setter()
             #add experience based on level
             self.experience += target.exp_val * (1 - self.level/100)
             #instance a corpse from the mob
@@ -266,15 +261,28 @@ class player(creature):
         asyncio.create_task(self.basic_attack_loop(target))
     # a simple special attack for testing
     def slam(self, target = None):
-        if target == None:
+        if target:
+            valid, target = validate_target(self.location.contents, target)
+            if not valid:
+                print('that target is not here')
+                return
+        elif target == None:
             target = self.target_getter()
-        valid = self.mana_check_n_set(5)
-        if valid:
+        if target == None:
+            print('slam what?')
+            return
+        mana = self.mana_check_n_set(5)
+        if mana:
             target.get_n_set('health', 20, True)
             print(f'you slam down hard on {target.name}')
     # a simple async buff for testing
     async def attack_buff(self, target =None ):
-        if target == None:
+        if target:
+            valid, target = validate_target(self.location.contents, target)
+            if not valid:
+                print('that target is not here')
+                return
+        elif target == None:
             target = self
         target.get_n_set('attack value', 10)
         await asyncio.sleep(60)
@@ -282,9 +290,14 @@ class player(creature):
 
     #a simple heal for testing
     def heal(self, target = None):
-            if target == None:
-                target = self
-            target.get_n_set('health', 5 + 5 * self.stats_getter('int'))
+        if target:
+            valid, target = validate_target(self.location.contents, target)
+            if not valid:
+                print('that target is not here')
+                return
+        elif target == None:
+            target = self
+        target.get_n_set('health', 5 + 5 * self.stats_getter('int'))
     # a run function
     def run(self, target = None):
         if target == None:
@@ -296,19 +309,36 @@ class player(creature):
         self.traverse(target)
     # an end combat command
     def calm(self, target=None):
-        if target == None:
+        if target:
+            valid, target = validate_target(self.location.contents, target)
+            if not valid:
+                print('that target is not here')
+                return
+        elif target == None:
             target = self.target_getter()
+        if target == None:
+            print('nothing to calm')
+            return
         chance = randint(0, 1)
         if chance == 0:
             print(f'{target.name} fails to calm down')
         if chance == 1:
             self.in_combat = False
             target.aggressive = False
+            self.target_setter()
             print(f'{target.name} calms down')
     # special developers spell to instakill
     def dev_touch(self, target=None):
-            if target == None:
+            if target:
+                valid, target = validate_target(self.location.contents, target)
+                if not valid:
+                    print('that target is not here')
+                    return
+            elif target == None:
                 target = self.target_getter()
+            if target == None:
+                print('attack what?')
+                return
             print(f'with godlike powers {self.name}, points at {target.name} and says die')
             target.vitals_setter('health', 0)
     # examine items function
@@ -388,19 +418,20 @@ class player(creature):
             target_obj.use()
         else: print('use what?')
     # search function
-    def search(self, target_str):
+    def search(self, target_str = None):
+        if target_str == None:
+            print('search what?')
+            return
         #only error handling since user since objects are hidden
-        for pattern, value in self.location.search.items():
-            valid = re.search(pattern, target_str)
-            if valid:
-                found_obj = value
-                if type(found_obj) == str:
-                    #print string if string and return
-                    print(found_obj)
-                    return
-                #if object call discover object fuction on object
-                else:
-                    self.location.discover(found_obj)
-                    return
-        print('search what?')
-        return
+        valid, target = validate_target(self.location.search, target_str)
+        if not valid:
+            print('search what?')
+            return
+        if type(target) == str:
+            #print string if string and return
+            print(target)
+            return
+        #if object call discover object fuction on object
+        else:
+            self.location.discover(target)
+            return

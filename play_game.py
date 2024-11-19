@@ -87,49 +87,34 @@ async def game_loop(player):
         elif user_action in room_actions:
             if len(input_split) > 1:
                 target = input_split[1]
-                valid, target_obj = validate_target(player.location.contents, target)
-                if valid:
-                    try: 
-                        player.location.room_actions[user_action](target_obj)
-                    except AttributeError:
-                        print(f"try just {user_action}")
-                continue
+                try: 
+                    player.location.room_actions[user_action](target)
+                except AttributeError:
+                    print(f"try just {user_action}")
+                    continue
             player.location.room_actions[user_action](player)
         #checking against attacks
         elif user_action in attacks:
             # if a target was designated
             if len(input_split) > 1:
                 #check to make sure target is vaild
-                target= input_split[1]
-                if user_action == 'run':
-                    player.attacks[user_action](target)
-                    continue
-                valid, target_obj = validate_target(player.location.contents, target)
-                if valid:
-                    #if valid performs attack, displays player mana and health
-                    #checks if async
-                    is_async = inspect.iscoroutinefunction(player.attacks[user_action])
-                    if is_async: 
-                        try:
-                            asyncio.create_task(player.attacks[user_action](target_obj))
-                        except AttributeError:
-                            print('that target is not here')
-                    else:
-                        try:
-                            player.attacks[user_action](target_obj)
-                        except AttributeError:
-                            print('that target is not here')
-                    victory = player.victory_check(target_obj)
-                    player.mana_display()
-                    player.health_display()
-                    if victory:
-                        continue
-                    #if target still alive print it's health
-                    target_obj.health_display()
-                    #if attack started combat and target lives start melle combat loop
-                    if player.in_combat == False:                            
-                        player.enter_combat(target_obj)
-                    continue
+                target= input_split[1]        
+                #if valid performs attack, displays player mana and health
+                #checks if async
+                is_async = inspect.iscoroutinefunction(player.attacks[user_action])
+                if is_async: 
+                    try:
+                        asyncio.create_task(player.attacks[user_action](target))
+                    except AttributeError:
+                        print('that target is not here')
+                else:
+                    try:
+                        player.attacks[user_action](target)
+                    except AttributeError:
+                        print('that target is not here')
+                if player.in_combat == False:                            
+                    player.enter_combat(target)
+                continue
             # if no target was selects launch attack anyway
             else:
                 #if code is async handle here
@@ -147,7 +132,7 @@ async def game_loop(player):
                     #    print(f'{user_action} what?')
         else: print('please select an action')
 #a validate target function, similar to col_n_val, but just validating. 
-def validate_target(location, target_str):
+'''def validate_target(location, target_str):
     #get regex patterns from location parameter
     regex_patterns = [x.regex for x in location]
     # check regex for match
@@ -162,6 +147,6 @@ def validate_target(location, target_str):
         else:
             index +=1
     # if no pattern matches return false and none
-    return False, None
+    return False, None'''
 #proof of concept test functions
 play_game()

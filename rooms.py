@@ -49,9 +49,11 @@ class roomnode:
             linking_node.add_hidden(self)
         else:
             self.exits[direction] = linking_node
-            self.exits_regex[direction] = regex_exits_dict[direction]
+            compiled_regex = re.compile(regex_exits_dict[direction])
+            self.exits_regex[compiled_regex] = direction
             linking_node.exits[op_dir] = self
-            linking_node.exits_regex[op_dir] = regex_exits_dict[op_dir]
+            op_compiled_regex = re.compile(regex_exits_dict[op_dir])
+            linking_node.exits_regex[op_compiled_regex] = op_dir
     def remove_exit(self, key):
         self.exits.pop(key)
     def get_exits(self):
@@ -90,7 +92,7 @@ class roomnode:
             key_list = [k for k,v in self.hidden_exits.items() if v == item_obj]
             key = key_list[0]
             self.add_exits(item_obj, key)
-            print(f'you found and exit {key}')
+            print(f'you found an exit {key}')
         else: 
             self.add_item(item_obj)
             print(f'you found {item_obj.name}')
