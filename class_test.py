@@ -15,13 +15,14 @@ class creature:
         self.items = []
         self.exp_val = exp_val
         self.regex = regex
+    # reporter function 
     def __repr__(self):
         return f'''{self.name} 
         health = {self.vitals_getter('health')} of {self.vitals_getter('health max')} 
         mana = {self.vitals_getter('mana')} of {self.vitals_getter('mana max')}
         attack = {self.vitals_getter('attack value')}
         defence = {self.vitals_getter('defence value')}'''
-    #custom copy functions to seperate the vitals
+    #custom copy functions to seperate the vitals, exp value, and regex pattern
     def __copy__(self):
         new_instance = type(self)(self.name, self.text, self.vitals.copy(), self.exp_val, self.regex)
         new_instance.refresh_vitals()
@@ -37,14 +38,18 @@ class creature:
                        'defence value':1+self.stats['agi'] * 3}
     #basic attack function
     def basic_attack(self, target):
+        # calc damange based on roll, attack val, target defence val
         damage = (self.vitals_getter('attack value') + randint(0, 10)) - target.vitals_getter('defence value')
+        # if damage at or below zero report as missed target
         if damage <= 0:
             print(f'{self.name} missed {target.name}')
+            return
         target.get_n_set('health', damage, True)
         print(f'{self.name} hit {target.name} with {self.weapon} for {damage} damage')
     #mana check to be used before all mana costing attacks, 
     #makes sure self has mana if it does not returns false.
     def mana_check_n_set(self, cost):
+        # if current mana less than cost, print and return false
         if self.vitals_getter('mana') < cost:
             print(f'{self.name} lacks the mind for that')
             return False
@@ -69,29 +74,45 @@ class creature:
         self.stats[stat_string] = value
     # a display mana function
     def mana_display(self):
+        # calc percent of mana
         mana_percent = (self.vitals_getter('mana') / self.vitals_getter('mana max')) * 100
         mana_str = ''
+        # build string of % based on half mana percent
         for x in range(round(mana_percent/2)):
             mana_str = mana_str + '%'
-        print(f'mana - {mana_str}')
+        # print mana percent string
+        print(f'{self.name} mana - {mana_str}')
     # a display health function
     def health_display(self):
+        # calc health percent
         health_percent = (self.vitals_getter('health') / self.vitals_getter('health max')) * 100
         health_str = ''
+        # build string of % based on half health percent
         for x in range(round(health_percent/2)):
             health_str = health_str + '%'
-        print(f'health - {str(health_str)}')
+        # print health percent string
+        print(f'{self.name} health - {str(health_str)}')
+    # a function to display both health and mana
+    def status_display(self):
+        self.mana_display()
+        self.health_display()
     # an experience value modifier function
     def exp_val_setter(self, value):
         self.exp_val = value
     # a get and set function to streamline modifying values
     def get_n_set(self, stats_string, value, subtract = False):
+        # if subtrack make value negative
         if subtract == True: value = 0 - value
+        # calc ne value by adding value to current value
         new_val = self.vitals_getter(stats_string) + value
+        # IS THERE A WAY TO COMBINE THESE TOGETHER?
+        # if above max health reduce to max
         if stats_string == 'health' and new_val > self.vitals_getter('health max'):
             new_val = self.vitals_getter('health max')
+        # if above max mana update to max
         if stats_string == 'mana' and new_val > self.vitals_getter('mana max'):
             new_val = self.vitals_getter('mana max')
+        # set current value to new value
         self.vitals_setter(stats_string, new_val)
 #murlock subclass
 murlock_text = "A scaley frog-like humanoid walking upright with thin limbs and an enormous mouth."

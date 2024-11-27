@@ -1,11 +1,13 @@
 import inspect
 import asyncio
 import shelve
-from player_class import player
+from player_types import sorcerer
 from item_classes import container
 import re
 # a basic play game loop
 #a passive self healing heatlh and mana
+player_classes = [sorcerer]
+class_strings = ['sorcerer']
 async def passive_heal(player):
     #while player is active
     while player.active == True:
@@ -29,7 +31,12 @@ def play_game():
         with shelve.open('player.db') as db:
             character = db[play_name]
     except KeyError:
-        character = player(play_name)
+        count = 1
+        for string in class_strings:
+            print(f'{count}, {string}')
+        class_choice = input('what are your abilities? \n')
+        if class_choice == '1' or class_choice == 'sorcerer':
+            character = sorcerer(play_name)
     character.active = True
     character.refresh_vitals()
     character.refresh_active()
@@ -53,68 +60,76 @@ async def game_loop(player):
     asyncio.create_task(handle_input(queue))
     #gameplay while loop based on player.active attribute 
     while player.active == True:
-        #handles death.
+        #if player is dead
         if player.alive == False:
+            # user input to restart game or quit
+            # I MIGHT NEED TO REWORK THIS SO IT DOESN'T GLITCH THE ASYNC
             choice = input("restart or quit?\n")
             if choice == 'restart': play_game()
             else: player.quit()
         #get user input from queue
         player_input = await queue.get()
-        #validate user imput
         #making lists of acceptable syntax
+        #list for basic actions
         actions = [x for x in player.basic_action.keys()]
+        # empty list for room actions
         room_actions = []
+        # populate list with room actions if applicable. This prevents and error is no room actions
         if len(player.location.room_actions)>0:
              room_actions = [x for x in player.location.room_actions.keys()]
+        #list for attacks
         attacks = [x for x in player.attacks.keys()]
         #splitting user input into syntax and target as of right now only one word syntax in accepted
         input_split = player_input.split(' ', 1)
         user_action = input_split[0]
+        try:
+            target = input_split[1]
+        except IndexError: target = None
         #checking user input against lists
         #checking basic actions list
         if user_action in actions:
-            if len(input_split) > 1:
-                target = input_split[1]
+            # if target was listed call action with target
+            if target:
                 player.basic_action[user_action][0](target)
                 continue        
+            # if no target was listed try calling action with no target
             else:
                 try:
                     player.basic_action[user_action][0]()
+                # ERROR HANDLING MAY BE UNNECESSARY WITH NEW VALIDATION
                 except TypeError:
                     print(f'{user_action} what?')
                     continue
-        #checking against room actions I might need to build this out more with error handing
+        #checking against room actions
         elif user_action in room_actions:
-            if len(input_split) > 1:
-                target = input_split[1]
+            # if target was passed call action with target
+            if target:
                 try: 
                     player.location.room_actions[user_action](target)
+                # error handling might need examining or adjusting
                 except AttributeError:
                     print(f"try just {user_action}")
                     continue
-            player.location.room_actions[user_action](player)
+            #if no target was passed call with no target
+            else: player.location.room_actions[user_action](player)
         #checking against attacks
         elif user_action in attacks:
             # if a target was designated
-            if len(input_split) > 1:
-                #check to make sure target is vaild
-                target= input_split[1]        
-                #if valid performs attack, displays player mana and health
+            if target:       
                 #checks if async
                 is_async = inspect.iscoroutinefunction(player.attacks[user_action])
+                # if async add to task list
                 if is_async: 
                     try:
-                        asyncio.create_task(player.attacks[user_action](target))
+                        await asyncio.create_task(player.attacks[user_action](target))
                     except AttributeError:
                         print('that target is not here')
+                # if not async call action with target
                 else:
                     try:
                         player.attacks[user_action](target)
                     except AttributeError:
-                        print('that target is not here')
-                if player.in_combat == False:                            
-                    player.enter_combat(target)
-                continue
+                        print('that target is not here, error handling')
             # if no target was selects launch attack anyway
             else:
                 #if code is async handle here
