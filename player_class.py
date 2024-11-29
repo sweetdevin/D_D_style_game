@@ -17,7 +17,7 @@ def validate_target(location, target_str, target_list = None):
                 if target_list:
                     if type(value) not in target_list:
                         return False, None
-            return True, value
+                return True, value
     # else if location is a list
     elif type(location) == list:
     #get regex patterns from location parameter
@@ -64,8 +64,8 @@ class player(creature):
         self.consumables = []
         self.experience = 0
         self.level = 1
-        self.active_effects = {'health': 0, 'health max': 0, 'mana':0, 'mana max':0,
-                               'attack value':0, 'defence value':0}
+        #this needs to be adjusted and re thought
+        #self.active_effects = {}
     #getters and setters for target
     def target_setter(self, target_obj = None):
         self.target = target_obj
@@ -92,16 +92,16 @@ class player(creature):
             self.get_n_set('mana', self.vitals_getter('mana max'))
             self.get_n_set('health', self.vitals_getter('health max'))
     # set and refresh equipment func
-    def set_active(self, stats_string, effect):
-        self.active_effects[stats_string] += effect
-        self.get_n_set(stats_string, self.active_effects[stats_string])
+    #def set_active(self, effect_name, stats_string, effect):
+     #   self.active_effects[effect_name] = [stats_string, effect]
+      #  self.get_n_set(stats_string, self.active_effects[stats_string])
     def refresh_active(self):
-        try:
-            for item in self.items:
-                self.set_active(item.stats, item.effect)
-        except ValueError:
-            self.active = {'health': 0, 'health max': 0, 'mana':0, 'mana max':0,
-                               'attack value':0, 'defence value':0}
+        if len(self.active_effects) > 0:
+            for value in self.active_effects.values():
+                self.get_n_set(value[0], value[1])
+    #def remove_active(self, effect_name):
+     #   self.get_n_set(self.active_effects[effect_name][0], self.active_effects[1], True)
+      #  del self.active_effects[effect_name]
     # an occupied check
     def occupied_check(self):
         # if occupied attribute is true print and return true
@@ -196,6 +196,11 @@ class player(creature):
         # if success return target obj
         if mana_check:
             return target_obj
+    #ability countdown timer
+    async def ability_countdown_timer(self, target, effect_name, seconds):
+        await asyncio.sleep(seconds)
+        target.remove_active(effect_name)
+        print(f'the {effect_name} wears off {target.name}')
     #a combat check and set for spells
     def combat_check_n_set(self, target):
         if self.in_combat == False:
@@ -290,6 +295,7 @@ class player(creature):
         #print equipment and consumables lists
         print(f'equipment, {self.items}')
         print(f'consumables, {self.consumables}')
+        print(f'active effects, {self.active_effects}')
     # an exit for the game loop
     def quit(self):
         self.active = False
@@ -300,7 +306,7 @@ class player(creature):
         if target == None:
             print('attack what?')
             return
-        # if a target was passed validate target
+        # if a target was passed was a string validate target
         if type(target) == str:
             #validate target return bool and target object if pass 
             valid, target = validate_target(self.location.contents, target, creature_classes)
@@ -308,9 +314,10 @@ class player(creature):
             if not valid:
                 print('that target is not here, validate ')
                 return
+        # else if target passed is not in creature class list
         elif type(target) not in creature_classes:
             return
-        # if validation passes, self in combat attribute
+        # if validation passes, or target in creature class list, self in combat attribute
         self.in_combat = True
         #set default target to mob
         self.target_setter(target)
@@ -522,13 +529,6 @@ class player(creature):
             #validate target if passed, assign target to self.target if not
             #returns bool if validate failed, target_obj if available, none if not
             target = self.validate_default_target(self.location.contents, target, creature_classes)
-            '''if target:
-                valid, target = validate_target(self.location.contents, target)
-                if not valid:
-                    print('that target is not here')
-                    return
-            elif target == None:
-                target = self.target_getter()'''
             # if validate failed, return
             if type(target) == bool:
                 return

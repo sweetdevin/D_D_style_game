@@ -13,6 +13,7 @@ class creature:
         self.special_attacks = {}
         self.aggressive = False
         self.items = []
+        self.active_effects = {}
         self.exp_val = exp_val
         self.regex = regex
     # reporter function 
@@ -36,6 +37,14 @@ class creature:
                        "mana max": self.stats['int'] * 10, 'mana': self.stats['int']*10,
                        'attack value': 1+(self.stats['str'] * 3) + (self.stats['agi'] * 3),
                        'defence value':1+self.stats['agi'] * 3}
+    # set active effects
+    def set_active(self, effect_name, stats_string, effect):
+        self.active_effects[effect_name] = [stats_string, effect]
+        self.get_n_set(stats_string, effect)
+    # remove active effects
+    def remove_active(self, effect_name):
+        self.get_n_set(self.active_effects[effect_name][0], self.active_effects[effect_name][1], True)
+        del self.active_effects[effect_name]
     #basic attack function
     def basic_attack(self, target):
         # calc damange based on roll, attack val, target defence val
@@ -46,17 +55,6 @@ class creature:
             return
         target.get_n_set('health', damage, True)
         print(f'{self.name} hit {target.name} with {self.weapon} for {damage} damage')
-    #mana check to be used before all mana costing attacks, 
-    #makes sure self has mana if it does not returns false.
-    def mana_check_n_set(self, cost):
-        # if current mana less than cost, print and return false
-        if self.vitals_getter('mana') < cost:
-            print(f'{self.name} lacks the mind for that')
-            return False
-        #if true subtracts spell cost, returns True
-        else:
-            self.get_n_set('mana', cost, True)
-            return True
     # add_tiem function
     def add_item(self, item):
         self.items.append(item)
@@ -126,21 +124,6 @@ class murlock(creature):
             damage = randint(0, 20) + 20
             target.get_n_set('health', damage, True)
             print(f'{self.name} launches bubbles at {target.name} for {damage} damage')
-# barbarian subclass
-barbarian_text = 'a mountain of a man wearing sparse fur armour wielding a large club'
-class barbarian(creature):
-    def __init__(self, name, text):
-        super().__init__(name, text)
-        self.weapon = 'club'
-        self.special_attacks = {'leaping smash':self.leaping_smash}
-    #barbarian special attacks
-    def leaping_smash(self, target, cost = 5):
-        if self.mana_check(target, cost) == True:
-            self.get_n_set('mana', cost)
-            damage = randint(0, 20) + 35 
-            target.get_n_set('health', damage)
-            print(f'{self.name} leaps into the air and smashes his club down on {target.name} for {damage} damage')
-
 # creating creature class objects and item class objects
 #setting values for creature objects and adding item objects to creatures
 rat= creature('rat', 'a large disgusting rat')

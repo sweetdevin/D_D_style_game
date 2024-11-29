@@ -146,22 +146,5 @@ async def game_loop(player):
                     #except TypeError:
                     #    print(f'{user_action} what?')
         else: print('please select an action')
-#a validate target function, similar to col_n_val, but just validating. 
-'''def validate_target(location, target_str):
-    #get regex patterns from location parameter
-    regex_patterns = [x.regex for x in location]
-    # check regex for match
-    index = 0
-    for pattern in regex_patterns:
-        #if match use index to select target object, return turn and object
-        result = re.search(pattern, target_str)
-        if result:
-            target_obj = location[index]
-            return True, target_obj
-        #else advance index and try again
-        else:
-            index +=1
-    # if no pattern matches return false and none
-    return False, None'''
 #proof of concept test functions
 play_game()

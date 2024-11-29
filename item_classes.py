@@ -26,7 +26,7 @@ class equipment(item_class):
         self.effect = effect
     # use function, activates effect on player, equipment currently binds and uses on pickup
     def use(self):
-        self.player.set_active(self.stat, self.effect)   
+        self.player.set_active(self.name, self.stat, self.effect)   
 # consumable subclass 
 class consumable(item_class):
     def __init__(self, name, text, stat=None, effect=None):
