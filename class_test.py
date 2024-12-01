@@ -13,6 +13,7 @@ class creature:
         self.special_attacks = {}
         self.aggressive = False
         self.items = []
+        self.equipment = {}
         self.active_effects = {}
         self.exp_val = exp_val
         self.regex = regex
@@ -58,6 +59,21 @@ class creature:
     # add_tiem function
     def add_item(self, item):
         self.items.append(item)
+    def equip_item(self, item):
+        item_type = item.equipment_type
+        if item_type in self.equipment.keys():
+            return False
+        else:
+            self.equipment[item_type] = item.name
+            self.set_active(item.equipment_type, item.stat, item.effect)
+            return True
+    def remove_item(self, item):
+        for k,v in self.equipment.items():
+            if v == item.name:
+                self.equipment.pop(k)
+                self.remove_active(k)
+                return True
+        return False
     # vitals getter
     def vitals_getter(self, stats_string):
         return self.vitals[stats_string]
@@ -132,15 +148,17 @@ rat.refresh_vitals()
 rat.exp_val_setter(30)
 dreadclaw = murlock('dreadclaw murlock', murlock_text + "\n these murlocks have large claws.")
 dreadclaw.set_regex(r'\b(dread\w*|murlock\w*)\b')
-ring_of_health = equipment('ring of health', 'a glowing red ring', 'health max', 300)
+ring_of_health = equipment('ring of health', 'a glowing red ring','ring', 'health max', 300)
 ring_of_health.set_regex(r'^ring( of health| health)?$')
 health_potion = consumable('health potion', 'a vial of a red bubbly liquid', 'health', 50)
 health_potion.set_regex(r'^(health|potion|health potion)$')
 dreadclaw.add_item(health_potion)
 snagletooth = murlock('snagletooth murlock', murlock_text + "\n These murlocks have long snarly teeth.")
+snagletooth.refresh_vitals()
 snagletooth.set_regex(r'\b(snagle\w*|murlock\w*)\b')
 snagletooth.add_item(health_potion)
 snagletooth.add_item(ring_of_health)
+snagletooth.equip_item(ring_of_health)
 dreadclaw.exp_val_setter(100)
 mana_potion = consumable('mana potion', 'a vial of bubbly blue liquid', 'mana', 20)
 mana_potion.set_regex(r'^(mana|potion|mana potion)$')
@@ -148,5 +166,4 @@ mana_charm = equipment('mana charm', 'a plusing carved crystal rune', 'mana max'
 mana_charm.set_regex(r'^(mana|charm|mana charm)$')
 dreadclaw.add_item(mana_potion)
 dreadclaw.add_item(mana_potion)
-snagletooth.refresh_vitals()
 dreadclaw.refresh_vitals()

@@ -52,8 +52,9 @@ class player(creature):
                               'examine': [self.examine, 'loot at objects in the room'], 
                              'take' : [self.take_item, 'take an item from the room'], 'use': [self.use, 'use an item from  your inventory'],
                                'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu'],
-                               'level': [self.level_up, 'if you have enough experience you can level up'], 
-                               'search': [self.search, 'search a target to discover hidden things']}
+                               'level': [self.level_up, 'if you have enough experience you can level up'], 'search': [self.search, 'search a target to discover hidden things'],
+                               'equip': [self.equip, 'wear or wield a piece of equipment from your inventroy'], 'drop': [self.drop, 'drops an item from inventory'],
+                               'remove': [self.remove, 'unequip an item']}
         self.active = False
         self.in_combat = False
         self.target = None
@@ -64,8 +65,6 @@ class player(creature):
         self.consumables = []
         self.experience = 0
         self.level = 1
-        #this needs to be adjusted and re thought
-        #self.active_effects = {}
     #getters and setters for target
     def target_setter(self, target_obj = None):
         self.target = target_obj
@@ -293,7 +292,7 @@ class player(creature):
             print('you can level')
         else: print(f'you need {self.level * 100 - self.experience} more experience to level up')
         #print equipment and consumables lists
-        print(f'equipment, {self.items}')
+        print(f'items, {self.items}')
         print(f'consumables, {self.consumables}')
         print(f'active effects, {self.active_effects}')
     # an exit for the game loop
@@ -592,13 +591,11 @@ class player(creature):
             self.location.remove_item(target_obj)
             target_obj.player_link(self)
             #if key or consumable type at it to consumable list
-            if type(target_obj) == consumable or key:
+            if type(target_obj) in [consumable, key]:
                 self.add_consumable(target_obj)
             #if equipment type add it items list
             elif type(target_obj) == equipment:
                 self.add_item(target_obj)
-                #active item effect
-                target_obj.use(self)
             #print message
             print(f'you take {target_obj.name}')
             #start respawn timer
@@ -632,7 +629,6 @@ class player(creature):
             # add to appropriate list
             if type(item) == equipment:
                 self.add_item(item)
-                item.use()
             elif type(item) == consumable or key:
                 self.add_consumable(item)
             #print and remove item from container
@@ -640,6 +636,43 @@ class player(creature):
             target_obj.contents.remove(item)
         #print when finished
         print(f'you looted {target_obj.name}')
+    # drop item function
+    def drop(self, target = None):
+        if target == None:
+            print('drop what?')
+            return
+        valid, target_obj = validate_target(self.items, target)
+        if not valid:
+            return
+        if target_obj.name in self.equipment.values():
+            print('you must remove that to drop it')
+            return
+        self.location.add_item(target_obj)
+        self.items.remove(target_obj)
+        print(f'you drop {target_obj.name}')
+    # equip item function
+    def equip(self, target = None):
+        if target == None:
+            print('equip what?')
+            return
+        valid, target_obj = validate_target(self.items, target)
+        if valid:
+            success = self.equip_item(target_obj)
+            if success:
+                print(f'you equip {target_obj.name}')
+            else: print(f'you are already wearing a {target_obj.equipment_type}')
+    ### START HERE TONIGHT REMOVE NOT REMOVING FROM SELF.EQUIPMENT ###
+    def remove(self, target = None):
+        if target == None:
+            print('remove what?')
+            return
+        valid, target_obj = validate_target(self.items, target)
+        if valid:
+            success = self.remove_item(target_obj)
+            if success:
+                print(f'you remove {target_obj.name}')
+            else: print(f'you are not wearing {target_obj.name}')
+
     # use item function THIS FUNCTION MIGHT GET MODIFIED IF I UPDATE EQUIPMENT
     def use(self, target = None):
         #if no target print and return

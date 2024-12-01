@@ -20,10 +20,11 @@ class item_class():
         self.regex = regex_pattern
 # equipment subclass
 class equipment(item_class):
-    def __init__(self, name, text, stat=None, effect=None):
+    def __init__(self, name, text, equipment_type, stat=None, effect=None):
         super().__init__(name, text)
         self.stat = stat
         self.effect = effect
+        self.equipment_type = equipment_type
     # use function, activates effect on player, equipment currently binds and uses on pickup
     def use(self):
         self.player.set_active(self.name, self.stat, self.effect)   
@@ -183,3 +184,5 @@ west_door_key_blue.set_regex(r'^(blue )?key$')
 west_door_key_blue.link_obj(west_door)
 save_point = save_altar('a stange glowing altar', 'you sense this altar would "save" your current state')
 save_point.set_regex(r'^(stange |glowing )?altar$')
+helm_of_atk = equipment('helm of attack', 'a thin light helmet studded with gems', 'helmet', 'attack value', 10)
+helm_of_atk.set_regex(r'^helm(et)?( of attack)?')

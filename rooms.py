@@ -1,5 +1,5 @@
 from class_test import snagletooth, health_potion, dreadclaw, rat, ring_of_health
-from item_classes import fountain, sm_box_01, sm_key_01, west_door, west_door_key_blue, west_door_key_green, save_point
+from item_classes import fountain, sm_box_01, sm_key_01, west_door, west_door_key_blue, west_door_key_green, save_point, helm_of_atk
 import copy
 import asyncio
 import re
@@ -180,6 +180,7 @@ spawnnode.add_spawn_item(health_potion)
 swamp_west = roomnode('the swampland splits here with passages going both north and south')
 swamp_west_1 = roomnode('an alter in the middle of the swamp')
 swamp_west.add_spawn_item(west_door)
+swamp_west.add_spawn_item(helm_of_atk)
 spawnnode.add_exits(swamp_west, 'west')
 swamp_west.add_exits(swamp_west_1, 'west')
 swamp_north_1_text = '''a large swamp with small stick and mud dwellings
