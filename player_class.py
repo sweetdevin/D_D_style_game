@@ -54,7 +54,8 @@ class player(creature):
                                'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu'],
                                'level': [self.level_up, 'if you have enough experience you can level up'], 'search': [self.search, 'search a target to discover hidden things'],
                                'equip': [self.equip, 'wear or wield a piece of equipment from your inventroy'], 'drop': [self.drop, 'drops an item from inventory'],
-                               'remove': [self.remove, 'unequip an item']}
+                               'remove': [self.remove, 'unequip an item'], 'equipment' : [self.display_equipment, 'show your current armour'],
+                               'inventory' : [self.display_inventory, 'show what you are holding']}
         self.active = False
         self.in_combat = False
         self.target = None
@@ -62,7 +63,6 @@ class player(creature):
         self.occupied = False
         self.attacks = self.attacks | {'attack': self.enter_combat, 'run': self.run, 'calm': self.calm,
                                        'dev_touch': self.dev_touch}
-        self.consumables = []
         self.experience = 0
         self.level = 1
     #getters and setters for target
@@ -204,9 +204,6 @@ class player(creature):
     def combat_check_n_set(self, target):
         if self.in_combat == False:
             self.enter_combat(target)
-    #add consumable 
-    def add_consumable(self, item_obj):
-        self.consumables.append(item_obj)
     #basic player specific commands
     def help(self):
         #print list of basic commands
@@ -291,10 +288,36 @@ class player(creature):
         if self.experience > self.level * 100:
             print('you can level')
         else: print(f'you need {self.level * 100 - self.experience} more experience to level up')
-        #print equipment and consumables lists
-        print(f'items, {self.items}')
-        print(f'consumables, {self.consumables}')
+        #print active effects
         print(f'active effects, {self.active_effects}')
+        #print encumbrance
+        print(f'current encumbrance, {self.load} out of {self.vitals_getter("encumbrance")}')
+    # display current equipment function
+    def display_equipment(self):
+        print('you current area wearing')
+        for k,v in self.equipment.items():
+            print(f'{k} : {v}')
+    # display inventory function
+    def display_inventory(self):
+        print('you are currently holding:')
+        items_equip = []
+        items_consumables = []
+        items_keys = []
+        for item in self.items:
+            item_type = type(item)
+            if item_type == equipment: items_equip.append(item)
+            elif item_type == consumable: items_consumables.append(item)
+            elif item_type == key: items_keys.append(item)
+        print('equipment:')
+        for x in items_equip:
+            print(x)
+        print('consumables:')
+        for x in items_consumables:
+            print(x)
+        print('keys:')
+        for x in items_keys:
+            print(x)
+
     # an exit for the game loop
     def quit(self):
         self.active = False
@@ -405,85 +428,6 @@ class player(creature):
     # a function to assign combat loop as a task to run in the background
     def combat(self, target):
         asyncio.create_task(self.basic_attack_loop(target))
-    # a simple special attack for testing
-    '''def slam(self, target = None):
-        #validate target wrapper
-        target_obj = self.validate_default_target(self.location.contents, target, creature_classes)
-         # if target was passed validate it
-        if target:
-            # validate returns bool and target object if passed
-            valid, target = validate_target(self.location.contents, target)
-            # if validate failed print and turn
-            if not valid:
-                print('that target is not here')
-                return
-        # if no target was passed assign default target
-        elif target == None:
-            target = self.target_getter()
-        #if still no target print and return
-        if type(target_obj) == bool:
-            return
-        if target_obj == None:
-            print('slam what?')
-            return
-        # at this point I should have a target that exists in location If i need target Type
-        # validation here is where i need to add it.
-        # mana check and set returns bool if pass and subtracts mana 
-        mana = self.mana_check_n_set(5)
-        #if pass attack target
-        if mana:
-            target_obj.get_n_set('health', 20, True)
-            print(f'you slam down hard on {target_obj.name}')
-            print(f'you hit {target_obj.name} for 20 damage')
-            print('you')
-            self.mana_display()
-            self.health_display()
-            print(f'{target_obj.name}')
-            target.health_display()
-    # a simple async buff for testing
-    async def attack_buff(self, target =None ):
-        #validate target if passed, assign self if not, returns bool if validate fails target_obj if pass
-        target = self.validate_default_self(self.location.contents, target, creature_classes)
-        # if target was passed validate it
-        if target:
-            # validate target returns bool and target obj if pass
-            valid, target = validate_target(self.location.contents, target)
-            # if failed print and return
-            if not valid:
-                print('that target is not here')
-                return
-        #if no target was passes target self
-        elif target == None:
-            target = self
-        #if target is bool validate failed, return nothing
-        if type(target) == bool:
-            return
-        # need to add a mana check and check to see if this buff is already active.
-        #NEED TO THINK ON HOW TO BETTER TRACK ACTIVE BUFFS
-        # increase attack
-        target.get_n_set('attack value', 10)
-        # wait 1 minute
-        await asyncio.sleep(60)
-        # remove bonus to attack
-        target.get_n_set('attack value', 10, True)
-
-    #a simple heal for testing
-    def heal(self, target = None):
-        # validate target if passed, default self if not. returns bool if validate failed, target_obj if pass 
-        target = self.validate_default_self(self.location.contents, target, creature_classes)
-        # if no
-        if target:
-            valid, target = validate_target(self.location.contents, target)
-            if not valid:
-                print('that target is not here')
-                return
-        elif target == None:
-            target = self
-        # if target bool validate failed, return
-        if type(target) == bool:
-            return
-        #heal target
-        target.get_n_set('health', 5 + 5 * self.stats_getter('int'))'''
     # a run function ment for quick exit from combat unique since no target is needed
     def run(self, target = None):
         # if no direction passed 
@@ -546,15 +490,12 @@ class player(creature):
             return
         # if target was passed validate against location and inventory
         valid_1, target_1 = validate_target(self.location.contents, target)
-        valid_2, target_2 = validate_target(self.consumables, target)
-        valid_3, target_3 = validate_target(self.items, target)
+        valid_2, target_2 = validate_target(self.items, target)
         # check if any of the validates worked
         if valid_1:
             target = target_1
         elif valid_2:
             target = target_2
-        elif valid_3:
-            target = target_3
         #if they all failed print and return
         else: 
             print('examine what?')
@@ -588,14 +529,12 @@ class player(creature):
         # if target object an takeable item type
         if type(target_obj) in [consumable, equipment, key]:
             # remove item from location and connect it to player
+            success = self.add_item(target_obj)
+            if not success:
+                print(f'you cannot take {target_obj.name},  it\' too heavy')
             self.location.remove_item(target_obj)
             target_obj.player_link(self)
             #if key or consumable type at it to consumable list
-            if type(target_obj) in [consumable, key]:
-                self.add_consumable(target_obj)
-            #if equipment type add it items list
-            elif type(target_obj) == equipment:
-                self.add_item(target_obj)
             #print message
             print(f'you take {target_obj.name}')
             #start respawn timer
@@ -625,12 +564,11 @@ class player(creature):
             return
         #for every item in target container link to player
         for item in [x for x in target_obj.contents]:
-            item.player_link(self)
             # add to appropriate list
-            if type(item) == equipment:
-                self.add_item(item)
-            elif type(item) == consumable or key:
-                self.add_consumable(item)
+            success = self.add_item(item)
+            if not success:
+                print(f'you cannot take {item.name}, it\' too heavy')
+            item.player_link(self)
             #print and remove item from container
             print(f'you take {item}')
             target_obj.contents.remove(item)
@@ -655,13 +593,13 @@ class player(creature):
         if target == None:
             print('equip what?')
             return
-        valid, target_obj = validate_target(self.items, target)
+        valid, target_obj = validate_target(self.items, target, [equipment])
         if valid:
             success = self.equip_item(target_obj)
             if success:
                 print(f'you equip {target_obj.name}')
             else: print(f'you are already wearing a {target_obj.equipment_type}')
-    ### START HERE TONIGHT REMOVE NOT REMOVING FROM SELF.EQUIPMENT ###
+    #remove item function
     def remove(self, target = None):
         if target == None:
             print('remove what?')
@@ -680,7 +618,7 @@ class player(creature):
             print('use what?')
             return
         #validate target returns bool and target object is pass
-        valid, target_obj = validate_target(self.consumables, target)
+        valid, target_obj = validate_target(self.items, target, [consumable, key])
         #if valid use object
         if valid:
             target_obj.use()

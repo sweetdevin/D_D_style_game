@@ -13,10 +13,13 @@ class creature:
         self.special_attacks = {}
         self.aggressive = False
         self.items = []
-        self.equipment = {}
+        self.equipment = {'head': None, 'neck': None, 'shoulders': None, 'chest': None,
+                          'back': None, 'arms': None, 'hands': None, 'finger': None, 
+                          'waist': None, 'legs': None, 'feet': None}
         self.active_effects = {}
         self.exp_val = exp_val
         self.regex = regex
+        self.load = 0
     # reporter function 
     def __repr__(self):
         return f'''{self.name} 
@@ -37,7 +40,7 @@ class creature:
         self.vitals = {'health max': 25 + (self.stats['str'] * 25), 'health': 25 + (self.stats['str'] * 25),
                        "mana max": self.stats['int'] * 10, 'mana': self.stats['int']*10,
                        'attack value': 1+(self.stats['str'] * 3) + (self.stats['agi'] * 3),
-                       'defence value':1+self.stats['agi'] * 3}
+                       'defence value':1+self.stats['agi'] * 3, 'encumbrance' : 50 + (self.stats['str'] * 5)}
     # set active effects
     def set_active(self, effect_name, stats_string, effect):
         self.active_effects[effect_name] = [stats_string, effect]
@@ -58,19 +61,25 @@ class creature:
         print(f'{self.name} hit {target.name} with {self.weapon} for {damage} damage')
     # add_tiem function
     def add_item(self, item):
+        if self.load + item.weight > self.vitals_getter('encumbrance'):
+            return False
         self.items.append(item)
+        self.load += item.weight
+        return True
     def equip_item(self, item):
         item_type = item.equipment_type
-        if item_type in self.equipment.keys():
+        if self.equipment[item_type] != None:
             return False
         else:
             self.equipment[item_type] = item.name
+            ### I THINK I NEED TO REWRITE SET ACTIVE TO TAKE MULTIPLE VALUES
+            ### THEN I CAN STICK ALL ARMOUR TOGETHER.
             self.set_active(item.equipment_type, item.stat, item.effect)
             return True
     def remove_item(self, item):
         for k,v in self.equipment.items():
             if v == item.name:
-                self.equipment.pop(k)
+                self.equipment[k] = None
                 self.remove_active(k)
                 return True
         return False
@@ -147,8 +156,9 @@ rat.set_regex(r'^ra?t?$')
 rat.refresh_vitals()
 rat.exp_val_setter(30)
 dreadclaw = murlock('dreadclaw murlock', murlock_text + "\n these murlocks have large claws.")
+dreadclaw.refresh_vitals()
 dreadclaw.set_regex(r'\b(dread\w*|murlock\w*)\b')
-ring_of_health = equipment('ring of health', 'a glowing red ring','ring', 'health max', 300)
+ring_of_health = equipment('ring of health', 'a glowing red ring','finger', 'health max', 300)
 ring_of_health.set_regex(r'^ring( of health| health)?$')
 health_potion = consumable('health potion', 'a vial of a red bubbly liquid', 'health', 50)
 health_potion.set_regex(r'^(health|potion|health potion)$')
@@ -162,8 +172,7 @@ snagletooth.equip_item(ring_of_health)
 dreadclaw.exp_val_setter(100)
 mana_potion = consumable('mana potion', 'a vial of bubbly blue liquid', 'mana', 20)
 mana_potion.set_regex(r'^(mana|potion|mana potion)$')
-mana_charm = equipment('mana charm', 'a plusing carved crystal rune', 'mana max', 30)
-mana_charm.set_regex(r'^(mana|charm|mana charm)$')
+mana_amulet = equipment('mana charm', 'a plusing carved crystal rune', 'neck', 'mana max', 30)
+mana_amulet.set_regex(r'^(mana|charm|mana charm)$')
 dreadclaw.add_item(mana_potion)
 dreadclaw.add_item(mana_potion)
-dreadclaw.refresh_vitals()

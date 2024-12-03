@@ -2,11 +2,12 @@ import shelve
 import asyncio
 #items class bases class for all items
 class item_class():
-    def __init__(self, name, text):
+    def __init__(self, name, text, weight = 1):
         self.name = name
         self.text = text
         self.player = None
         self.regex = ''
+        self.weight = weight
     def __repr__(self) -> str:
         return self.name
     # link to player function
@@ -184,5 +185,5 @@ west_door_key_blue.set_regex(r'^(blue )?key$')
 west_door_key_blue.link_obj(west_door)
 save_point = save_altar('a stange glowing altar', 'you sense this altar would "save" your current state')
 save_point.set_regex(r'^(stange |glowing )?altar$')
-helm_of_atk = equipment('helm of attack', 'a thin light helmet studded with gems', 'helmet', 'attack value', 10)
+helm_of_atk = equipment('helm of attack', 'a thin light helmet studded with gems', 'head', 'attack value', 10)
 helm_of_atk.set_regex(r'^helm(et)?( of attack)?')
