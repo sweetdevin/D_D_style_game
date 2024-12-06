@@ -21,29 +21,28 @@ class item_class():
         self.regex = regex_pattern
 # equipment subclass
 class equipment(item_class):
-    def __init__(self, name, text, equipment_type, stat=None, effect=None):
+    def __init__(self, name, text, equipment_type, effect_dict):
         super().__init__(name, text)
-        self.stat = stat
-        self.effect = effect
+        self.effect_dict = effect_dict
         self.equipment_type = equipment_type
     # use function, activates effect on player, equipment currently binds and uses on pickup
-    def use(self):
-        self.player.set_active(self.name, self.stat, self.effect)   
+    #def use(self):
+    #    self.player.set_active(self.name, self.effect_dict)   
 # consumable subclass 
 class consumable(item_class):
-    def __init__(self, name, text, stat=None, effect=None):
+    def __init__(self, name, text, effect_dict):
         super().__init__(name, text)
-        self.stat = stat
-        self.effect = effect 
+        self.effect_dict = effect_dict 
     # a use function for consumables applies effect to player.
     def use(self):
         #add effect to player
-        self.player.get_n_set(self.stat, self.effect)
-        # print effect and what was used
-        print(f'plus {self.effect} to {self.stat}')
+        for key, value in self.effect_dict.items():
+            self.player.get_n_set(key, value)
+            print(f'{value} added to {key}')
         print(f'{self.name} used')
         # remove consumable from players inventory
-        self.player.consumables.remove(self)
+        self.player.items.remove(self)
+        self.player.load -= self.weight
 # a door class
 class door(item_class):
     def __init__(self, name, text, exit_string, keys_needed = 1):
@@ -172,7 +171,7 @@ sm_box_01.set_regex(r'^lock?box$')
 sm_key_01 = key('a small key', 'a simple small brass key')
 sm_key_01.set_regex(r'^(small )?key$')
 sm_key_01.link_obj(sm_box_01)
-sm_health_potion = consumable('health potion', 'a vial of red bubbly liquid', 'health', 50)
+sm_health_potion = consumable('health potion', 'a vial of red bubbly liquid', {'health':50})
 sm_health_potion.set_regex(r'^(health|potion|health potion)$')
 sm_box_01.add_items(sm_health_potion)
 west_door = door('a large door to the west', 'a large door made of woven brances', 'west', 2)
@@ -185,5 +184,5 @@ west_door_key_blue.set_regex(r'^(blue )?key$')
 west_door_key_blue.link_obj(west_door)
 save_point = save_altar('a stange glowing altar', 'you sense this altar would "save" your current state')
 save_point.set_regex(r'^(stange |glowing )?altar$')
-helm_of_atk = equipment('helm of attack', 'a thin light helmet studded with gems', 'head', 'attack value', 10)
+helm_of_atk = equipment('helm of attack', 'a thin light helmet studded with gems', 'head', {'attack value':10})
 helm_of_atk.set_regex(r'^helm(et)?( of attack)?')

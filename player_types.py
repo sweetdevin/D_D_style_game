@@ -37,7 +37,7 @@ class sorcerer(player):
         if target_obj == self or target_obj in self.location.contents:
             print(f'a glowing magical armour surrounds {target_obj.name}')
             # set spell effects
-            target_obj.set_active('mage armour', 'defence value', 10)
+            target_obj.set_active('mage armour', {'defence value':10})
             #set occuiped to false
             self.occupied = False
             #wait spell duration

@@ -280,6 +280,18 @@ class player(creature):
         #else print no itesm
         else: print('no items')        
     # an in game self status check
+    def display_active(self):
+        display_dict = {}
+        armour_dict = {}
+        for key, value in self.active_effects.items():
+            if key in self.equipment.keys():
+                for key_1, value_1 in self.active_effects[key].items():
+                    armour_dict[key_1] = armour_dict.get(key_1, 0) + value_1
+            else:
+                display_dict[key] = value
+        if len(armour_dict) > 0:
+            display_dict['armour'] = armour_dict
+        return display_dict
     def me(self):
         #print self, level, 
         print(self)
@@ -289,7 +301,7 @@ class player(creature):
             print('you can level')
         else: print(f'you need {self.level * 100 - self.experience} more experience to level up')
         #print active effects
-        print(f'active effects, {self.active_effects}')
+        print(f'active effects, {self.display_active()}')
         #print encumbrance
         print(f'current encumbrance, {self.load} out of {self.vitals_getter("encumbrance")}')
     # display current equipment function
@@ -587,6 +599,7 @@ class player(creature):
             return
         self.location.add_item(target_obj)
         self.items.remove(target_obj)
+        self.load -= target_obj.weight
         print(f'you drop {target_obj.name}')
     # equip item function
     def equip(self, target = None):
