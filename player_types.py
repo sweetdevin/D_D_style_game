@@ -1,0 +1,84 @@
+import asyncio
+from player_class import player
+from class_test import creature, murlock
+creature_list = [creature, murlock]
+# a sorcerer subclass
+class sorcerer(player):
+    def __init__(self, name, text=...) -> None:
+        super().__init__(name, text)
+        self.attacks = self.attacks | {'grasp': self.grasp, 'armour': self.armour, 'fireball': self.fireball,
+                                       'enchant': self.enchant}
+    # a shocking grasp spell
+    async def grasp(self, target = None):
+        #validate target, default target, mana, and cast time. returns target object or False
+        target_obj = await self.ability_prep(1,5,'target', target, creature_list)
+        #if target object, print
+        if target_obj:
+            if target_obj not in self.location.contents:
+                print('that target is not here anymore')
+            else:    
+                print(f'you grab {target_obj.name}, and shock them with magical energy')
+                # calculate damage and print
+                damage = self.stats_getter('int') * 7
+                print(f'you deal {damage} damage to {target_obj.name}')
+                # deal damage to target
+                target_obj.get_n_set('health', damage, True)
+                self.combat_check_n_set(target_obj)
+        # resest occupied status
+        self.occupied = False
+    # armour spell 
+    async def armour(self, target = None):
+        #validate target, default target, cost, and cast time. returns target object or False
+        target_obj = await self.ability_prep(1,5,'self', target, creature_list)
+        if not target_obj:
+            self.occupied = False
+            return
+        #if target object, print
+        if target_obj == self or target_obj in self.location.contents:
+            print(f'a glowing magical armour surrounds {target_obj.name}')
+            # set spell effects
+            target_obj.set_active('mage armour', {'defence value':10})
+            #set occuiped to false
+            self.occupied = False
+            #wait spell duration
+            asyncio.create_task(self.ability_countdown_timer(target_obj, 'mage armour', 60))
+            # print and remove spell effects
+            #print(f'the magical aura around {target_obj.name} shimmers and disapears')
+            #target_obj.remove_active('mage armour')
+        else: self.occupied = False
+    # a fireball spell
+    async def fireball(self, target = None):
+        # validate target, assign default, cost, and cast time, returns target object or bool
+        target_obj = await self.ability_prep(2, 10, 'target', target, creature_list)
+        if target_obj:   # make certain target is still present, if not print
+            if target_obj not in self.location.contents:
+                print('that target is no longer here')
+            # if target is here print
+            else:
+                print(f'you throw a ball of hot fire at {target_obj.name}')
+                #calaculate damage
+                damage = self.stats_getter('int') * 9
+                #apply damage
+                target_obj.get_n_set('health', damage, True)
+            # set occupied to False
+        self.occupied = False
+    # a enchant weapon spell
+    async def enchant(self, target = None):
+        # validate target, assign default, cost, and cast time, returns target object or bool
+        target_obj = await self.ability_prep(2, 10, 'self', target, creature_list)
+        #if validate failed return
+        if not target_obj:
+            return
+        # if target object is self or in self.location, print
+        if target_obj == self or target_obj in self.location.contents:
+            print(f"{target_obj.name}'s {target_obj.weapon} beging glow with a magical aura")
+            # self value for spell, and set occuiped to false
+            target_obj.get_n_set('attack value', 15)
+            self.occupied = False
+            #wait spell duration
+            await asyncio.sleep(60)
+            # print and remove spell effect
+            print(f'the magical aura around {target_obj}\'s weapon fades away')
+            target_obj.get_n_set('attack value', 15, True)
+        #if spell fail turn occupied to false
+        else: self.occupied = False
