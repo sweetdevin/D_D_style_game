@@ -76,13 +76,6 @@ class creature:
         self.items.append(item)
         self.load += item.weight
         return True
-    '''def build_armour(self):
-        armour_values = {}
-        for value in self.equipment.values():
-                if value != None:
-                    for key, value in value[1].items():
-                        armour_values[key] = armour_values.get(key, 0) + value
-        return armour_values'''
     # equip item function
     def equip_item(self, item):
         item_type = item.equipment_type

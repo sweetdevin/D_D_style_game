@@ -90,13 +90,15 @@ async def game_loop(player):
         if user_action in actions:
             # if target was listed call action with target
             if target:
-                player.basic_action[user_action][0](target)
-                continue        
+                try:
+                    player.basic_action[user_action][0](target)
+                    continue
+                except TypeError:
+                    print(f'try  just {user_action}')
             # if no target was listed try calling action with no target
             else:
                 try:
                     player.basic_action[user_action][0]()
-                # ERROR HANDLING MAY BE UNNECESSARY WITH NEW VALIDATION
                 except TypeError:
                     print(f'{user_action} what?')
                     continue

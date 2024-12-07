@@ -97,7 +97,8 @@ class player(creature):
     def refresh_active(self):
         if len(self.active_effects) > 0:
             for value in self.active_effects.values():
-                self.get_n_set(value[0], value[1])
+                for key, value1 in value.items():
+                    self.get_n_set(key, value1)
     #def remove_active(self, effect_name):
      #   self.get_n_set(self.active_effects[effect_name][0], self.active_effects[1], True)
       #  del self.active_effects[effect_name]
@@ -346,7 +347,7 @@ class player(creature):
             valid, target = validate_target(self.location.contents, target, creature_classes)
             #if validation failed print and return
             if not valid:
-                print('that target is not here, validate ')
+                print('that target is not here')
                 return
         # else if target passed is not in creature class list
         elif type(target) not in creature_classes:

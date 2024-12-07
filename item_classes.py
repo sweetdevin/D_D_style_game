@@ -151,7 +151,7 @@ class key(item_class):
         if self.linked_obj in self.player.location.contents:
             # call linked objects add key function
             self.linked_obj.add_key(self)
-            self.player.consumables.remove(self)
+            self.player.items.remove(self)
         # if linked object is not in the room, Print
         else:
             print("you can't use that key here")
