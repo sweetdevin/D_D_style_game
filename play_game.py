@@ -13,6 +13,9 @@ async def passive_heal(player):
     while player.active == True:
         #wait 15 seconds
         await asyncio.sleep(15)
+        # make sure player is still alive
+        if player.alive == False:
+            continue
         #get current values
         current_health = player.vitals_getter('health')
         current_mana = player.vitals_getter('mana')
@@ -39,13 +42,12 @@ def play_game():
             character = sorcerer(play_name)
     character.active = True
     character.refresh_vitals()
-    character.refresh_active()
     asyncio.run(game_loop(character))
 #EXPERIMENTAL CODE
 #function to handle user inputs on a seperate thread as to not block event loop
 async def handle_input(queue):
     while True:
-        user_input = await asyncio.to_thread(input, "what do you do? \n")
+        user_input = await asyncio.to_thread(input, "")
         await queue.put(user_input)
 #gameplay loop
 async def game_loop(player):
@@ -60,13 +62,6 @@ async def game_loop(player):
     asyncio.create_task(handle_input(queue))
     #gameplay while loop based on player.active attribute 
     while player.active == True:
-        #if player is dead
-        if player.alive == False:
-            # user input to restart game or quit
-            # I MIGHT NEED TO REWORK THIS SO IT DOESN'T GLITCH THE ASYNC
-            choice = input("restart or quit?\n")
-            if choice == 'restart': play_game()
-            else: player.quit()
         #get user input from queue
         player_input = await queue.get()
         #making lists of acceptable syntax
@@ -82,10 +77,14 @@ async def game_loop(player):
         #splitting user input into syntax and target as of right now only one word syntax in accepted
         input_split = player_input.split(' ', 1)
         user_action = input_split[0]
+        target = None
         try:
             target = input_split[1]
         except IndexError: target = None
         #checking user input against lists
+        if user_action and player.alive == False:
+            print('you can\'t do anything in your current state')
+            continue
         #checking basic actions list
         if user_action in actions:
             # if target was listed call action with target
@@ -94,7 +93,7 @@ async def game_loop(player):
                     player.basic_action[user_action][0](target)
                     continue
                 except TypeError:
-                    print(f'try  just {user_action}')
+                    print(f'try just {user_action}')
             # if no target was listed try calling action with no target
             else:
                 try:
