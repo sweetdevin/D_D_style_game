@@ -1,14 +1,15 @@
-from class_test import snagletooth, health_potion, dreadclaw, rat, ring_of_health
-from item_classes import fountain, sm_box_01, sm_key_01, west_door, west_door_key_blue, west_door_key_green, save_point, helm_of_atk
+from class_test import snagletooth, health_potion, dreadclaw, rat, ring_of_health, farm_boy
+import item_classes
 import copy
 import asyncio
 import re
 #opposites direction dictionary needed for linking nodes via add exit method
 opposites = {'gates': 'gates', 'up' : 'down', 'down':'up', 'east':'west', "west":'east',
-             'north':'south', 'south':'north'}
+             'north':'south', 'south':'north', 'enter':'out', 'out':'enter'}
 # regex exits dictionary
 regex_exits_dict = {'east': r'^e(a(s(t)?)?)?$', 'west': r'^w(e(s(t)?)?)?$', 'north':r'^n(o(r(t(h)?)?)?)?$',
-                    'south':r'^s(o(u(t(h)?)?)?)?$', 'gates': r'^g(a(t(e(s)?)?)?)?$', 'up':r'up?$', 'down':r'd(o(w(n)?)?)?$'}
+                    'south':r'^s(o(u(t(h)?)?)?)?$', 'gates': r'^g(a(t(e(s)?)?)?)?$', 'up':r'up?$', 'down':r'd(o(w(n)?)?)?$',
+                    'enter': r'^en(t(e(r)?)?)?$', 'out': r'^o(u(t)?)?$'}
 #Roomnode class 
 class roomnode:
     def __init__(self, description):
@@ -23,6 +24,7 @@ class roomnode:
         self.spawn_hidden = []
         self.search = {}
         self.respawn_triggered = False
+        self.gold = 0
     #reswpan the room
     async def reswpawn(self):
         #check is respawn already triggered if so return
@@ -94,6 +96,15 @@ class roomnode:
     #remove object from room
     def remove_item(self, item_key):
         self.contents.remove(item_key)
+    #add gold
+    def add_gold(self, num):
+        self.gold += num
+    #subtract gold
+    def sub_gold(self, num):
+        self.gold -= num
+    #return gold
+    def return_gold(self):
+        return self.gold
     #add method link to room methods
     def add_method(self, method_key, method_locations):
         self.room_actions[method_key] = method_locations
@@ -137,10 +148,58 @@ class roomnode:
         compiled_str = re.compile(search_string)
         # use compiled regex as key in search dict.
         self.search[compiled_str] = search_result
+class store(roomnode):
+    def __init__(self, description):
+        super().__init__(description)
+        self.stock = []
+    # add stock
+    def add_stock(self, item_obj):
+        self.stock.append(item_obj)
+    # remove stock
+    def remove_stock(self, item_obj):
+        self.stock.remove(item_obj)
+    def view(self, player):
+        print('the shop has the following items for sale')
+        printed = []
+        for item in self.stock:
+            if item in printed:
+                continue
+            else:
+                print(f'{item} for {item.return_store_price()}')
+                printed.append(item)
+        print(f'your current gold : {player.gold}')
+    '''# a sell item method
+    def sell_item(self, player, item_str):
+        valid, target_obj = player.validate_target(player.inventory, item_str)
+        if not valid:
+            print('you don\'t have that item to sell')
+            return
+        else:
+            player.gold += target_obj.price
+            player.inventory.remove(target_obj)
+            player.load -= target_obj.weight
+            self.add_stock(target_obj)
+    # a buy item method
+    def buy_item(self, player, item_str):
+        valid, target_obj = player.validate_target(self.stock, item_str)
+        if not valid:
+            print('that item is not for sale')
+            return
+        else:
+            player.gold -=target_obj.price + (.25 * target_obj.price)
+            self.remove_stock(target_obj)
+            success = player.add_item(target_obj)
+            print(f'you buy {item_str}')
+            if not success:
+                print('that item is too heavy so you drop it')
+                self.add_item(target_obj)'''
+
+
 #build rooms, linking rooms, adding objects, adding methods
 tower_g_text = '''you stand at the gates outside of a large tower.
 On one side of the gates there is a trashcan. On the other there is a pile of sticks'''
 tower_g =roomnode(tower_g_text)
+tower_g.add_spawn_item(item_classes.potion_of_experience)
 tower_g.add_spawn_item(rat)
 tower_g.add_spawn_hidden(health_potion)
 tower_g.add_search(r'^pile', health_potion)
@@ -149,9 +208,9 @@ tower_1_text = """you stand on the ground floor of a large stone tower.
 There is a small lockbox by the door, and a wooden desk in the middle of the room"""
 tower_1 = roomnode(tower_1_text)
 tower_1.add_spawn_item(copy.copy(rat))
-tower_1.add_spawn_item(sm_box_01)
-tower_1.add_spawn_hidden(sm_key_01)
-tower_1.add_search(r'^desk', sm_key_01)
+tower_1.add_spawn_item(item_classes.sm_box_01)
+tower_1.add_spawn_hidden(item_classes.sm_key_01)
+tower_1.add_search(r'^desk', item_classes.sm_key_01)
 tower_2_text = 'you stand on the second floor of a large stone tower'
 tower_2 = roomnode(tower_2_text)
 tower_2.add_spawn_item(copy.copy(rat))
@@ -179,25 +238,55 @@ tower_3.add_search(r'^painting', tower_4)
 spawnnode.add_spawn_item(health_potion)
 swamp_west = roomnode('the swampland splits here with passages going both north and south')
 swamp_west_1 = roomnode('an alter in the middle of the swamp')
-swamp_west.add_spawn_item(west_door)
-swamp_west.add_spawn_item(helm_of_atk)
+swamp_west.add_spawn_item(item_classes.west_door)
+swamp_west.add_spawn_item(item_classes.helm_of_atk)
+swamp_west.add_spawn_item(item_classes.bubble_sword)
 spawnnode.add_exits(swamp_west, 'west')
 swamp_west.add_exits(swamp_west_1, 'west')
 swamp_north_1_text = '''a large swamp with small stick and mud dwellings
 the beginning of the snagletooth village'''
 swamp_north_1 = roomnode(swamp_north_1_text)
-snagletooth.add_item(west_door_key_blue)
+snagletooth.add_item(item_classes.west_door_key_blue)
 swamp_north_1.add_spawn_item(snagletooth)
 swamp_north_1.add_exits(swamp_west, 'south')
 swamp_south_1_text = '''a large swamp with small stick and mud dwelling
 this is the beginning of the dreadclaw village'''
 swamp_south_1 = roomnode(swamp_south_1_text)
 swamp_south_1.add_exits(swamp_west, 'north')
-dreadclaw.add_item(west_door_key_green)
+dreadclaw.add_item(item_classes.west_door_key_green)
 swamp_south_1.add_spawn_item(dreadclaw)
-restore_fountain = fountain('fountain of healing', 'a small stone fountain')
+restore_fountain = item_classes.fountain('fountain of healing', 'a small stone fountain')
 restore_fountain.set_regex(r'^((small )?stone )?fountain$')
 spawnnode.add_spawn_item(restore_fountain)
 spawnnode.add_method('drink', restore_fountain.drink)
-spawnnode.add_spawn_item(save_point)
-spawnnode.add_method('save', save_point.save)
+spawnnode.add_spawn_item(item_classes.save_point)
+spawnnode.add_method('save', item_classes.save_point.save)
+shop_text = '''A large stone building with lots of wooded shelves and a large counter. Behind the
+counter a large shopkeeper tends the store. This must be a store where you can 'buy' and 'sell' items.
+you can also 'view' the stock the store has for sale'''
+tower_shop = store(shop_text)
+tower_shop.add_method('view', tower_shop.view)
+tower_shop.add_stock(item_classes.sword_of_despair)
+tower_shop.add_stock(health_potion)
+tower_shop.add_stock(ring_of_health)
+tower_shop.add_stock(item_classes.helm_of_atk)
+tower_1.add_exits(tower_shop, 'enter')
+farm_1_text = '''a narrow rode leading to a small farmhouse. There is a low wooden fence framing the road
+to keep the livestock contained. To the east appears to be sheep pasture, to the west appears to be cows. The barn 
+and farmhouse are further to the north'''
+farm_1 = roomnode(farm_1_text)
+spawnnode.add_exits(farm_1, 'north')
+farm_1.add_spawn_item(farm_boy)
+farm_2_text = '''the road ends here between the barn and the farmhouse'''
+farm_2 = roomnode(farm_2_text)
+farm_1.add_exits(farm_2, 'north')
+farm_2.add_spawn_item(copy.copy(farm_boy))
+dev_room = roomnode("the secret developers room. have fun")
+spawnnode.add_exits(dev_room, 'south')
+dev_room.add_spawn_item(health_potion)
+dev_room.add_spawn_item(health_potion)
+dev_room.add_spawn_item(item_classes.potion_of_experience)
+dev_room.add_spawn_item(item_classes.potion_of_experience)
+dev_room.add_spawn_item(item_classes.sorc_chest)
+dev_room.add_spawn_item(item_classes.mana_potion)
+dev_room.add_spawn_item(item_classes.mana_potion)
