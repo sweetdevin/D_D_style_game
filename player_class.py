@@ -1,46 +1,35 @@
-from class_test import creature, murlock 
+from class_test import creature, murlock, dragon 
 from rooms import store, spawnnode
 from random import randint, choice
 from collections import Counter
 from item_classes import item_class, consumable, container, equipment, key, door, exp_potion
+import inspect
 import asyncio
 import re
-creature_classes = [creature, murlock]
-'''#a validate target function 
-def validate_target(location, target_str, target_list = None):
-    #if location is a dict
-    if type(location) == dict:
-        #loop checking keys vs target string
-        for pattern, value in location.items():
-            result = re.search(pattern, target_str)
-            #if a match is found return true and the value
-            if result:
-                if target_list:
-                    if type(value) not in target_list:
-                        return False, None
-                return True, value
-    # else if location is a list
-    elif type(location) == list:
-    #get regex patterns from location parameter
-        regex_patterns = [x.regex for x in location]
-        # check regex for match
-        # track itterations for index
-        index = 0
-        # loop checking patterns vs target string
-        for pattern in regex_patterns:
-            result = re.search(pattern, target_str)
-            #if match return true and the index from location list
-            if result:
-                target_obj = location[index]
-                if target_list:
-                    if type(target_obj) not in target_list:
-                        return False, None
-                return True, target_obj
-            #else advance index and try again
-            else:
-                index +=1
-    # if no pattern matches return false and none
-    return False, None'''
+#list of creature classes for target validation
+creature_classes = [creature, murlock, dragon]
+#callable object for sync methods. is used to display a custom string for my help menu
+class ReporterMethod:
+    def __init__(self, func, help_string):
+        self.func = func
+        self.help_string = help_string
+
+    def __call__(self, *args, **kwargs):
+        return self.func(*args, **kwargs)
+
+    def __repr__(self):
+        return self.help_string
+#same thing buy for async methods.
+class asyncReporterMethod:
+    def __init__(self, func, help_string):
+        self.func = func
+        self.help_string = help_string
+
+    async def __call__(self, *args, **kwargs):
+        return await self.func(*args, **kwargs)
+
+    def __repr__(self):
+        return self.help_string
 #player class 
 player_text =  'it\'s you, look in a mirror'
 class player(creature):
@@ -48,20 +37,16 @@ class player(creature):
         super().__init__(name, text)
         # starting stats
         self.stats = {'str':1, 'agi':1, 'int':1}
+        #default weapon
+        self.default_weapon = 'fists'
         #spawn location
         self.location = spawnnode
         # basic actions like move, look, take, drop....ect ect 
-        # also currently functions as my help dict
-        self.basic_action = {'look' : [self.look, 'look around your current room'], 'travel': [self.traverse, 'travel to another room'],
-                             'me': [self.me,'examine yourself and what you are carrying'], 'quit': [self.quit, 'quits the game'], 
-                              'examine': [self.examine, 'loot at objects in the room'], 
-                             'take' : [self.take_item, 'take an item from the room'], 'use': [self.use, 'use an item from  your inventory'],
-                               'loot': [self.loot, 'loots a container in the room'], 'help': [self.help, 'displays this help menu'], 
-                               'search': [self.search, 'search a target to discover hidden things'],
-                               'equip': [self.equip, 'wear or wield a piece of equipment from your inventroy'], 'drop': [self.drop, 'drops an item from inventory'],
-                               'remove': [self.remove, 'unequip an item'], 'equipment' : [self.display_equipment, 'show your current armour'],
-                               'inventory' : [self.display_inventory, 'show what you are holding'], 'buy': [self.buy_item, 'if at a shop buy an item'],
-                               'sell': [self.sell_item, 'if at a shop sell an item'], 'raise' : [self.raise_stats, 'raise your stats if you can']}
+        self.basic_action = {'look' : self.look, 'travel': self.traverse, 'me': self.me, 'quit': self.quit, 'examine': self.examine, 
+                             'take' : self.take_item, 'use': self.use, 'loot': self.loot, 'help': self.help, 'search': self.search,
+                               'equip': self.equip, 'drop': self.drop, 'remove': self.remove, 'equipment' : self.display_equipment,
+                               'inventory' : self.display_inventory, 'buy': self.buy_item,'sell': self.sell_item, 'raise' : self.raise_stats,
+                               'attack': self.enter_combat}
         # active status implies character is being played, tied to passive heal
         self.active = False
         # an in combat check, might be superfluous now
@@ -73,48 +58,50 @@ class player(creature):
         #if player is casting spell. checked to keep from spamcasting
         self.occupied = False
         #basic combat actions for all players
-        self.attacks = self.attacks | {'attack': self.enter_combat, 'run': self.run, 'calm': self.calm,
-                                       'dev_touch': self.dev_touch}
+        self.attacks = self.attacks
+                                    #   , 'flee': self.flee, 'calm': self.calm}
         #players current experience
         self.experience = 0
-        #players current level
-        #self.level = 1
-        # players stat raises
+        # players sta
         self.stats_dict = {'level': 1, 'aquired': 0, 'used':0 }
-        #self.stat_raises = 0
-        #tracking for stats raised
-        #self.stats_raised = 0
     #getters and setters for target
     def target_setter(self, target_obj = None):
         self.target = target_obj
     def target_getter(self):
         return self.target
-    #experince getters and setters
+    #recursive stat raise check called after experience gain.
     def stat_raise_checker(self):
+        #if you have enough experience, subtract cost of stat raise, add stat to aquired, call again.
         if self.experience_getter() >= (self.stat_raise_aquired() + 1) * 100:
             print('you can raise your stats')
             self.sub_experience((self.stat_raise_aquired() + 1) * 100)
             self.add_stat_raise()
             self.stat_raise_checker()
+    #experience getter
     def experience_getter(self):
         return self.experience
+    #add experience and call stat_raise checker
     def gain_experience(self, num):
         self.experience += num
         self.stat_raise_checker() 
+    #subtract experince
     def sub_experience(self, num):
         self.experience -= num 
-    #stat raise setter
+    # add stat to aquired
     def add_stat_raise(self, num = 1):
         self.stats_dict['aquired'] += num
+    #return stat raises aquired
     def stat_raise_aquired(self):
         return self.stats_dict['aquired']
+    #return stat raises used
     def stat_raise_used(self):
         return self.stats_dict['used']
+    #modify stat raises used
     def use_stat_raise(self, num = 1):
         self.stats_dict['used'] += num
     # a raise stats method
     def raise_stats(self, stat):
-        #check if the player has any stats
+        #check if the player has any stat raises available
         if self.stat_raise_aquired() - self.stat_raise_used() <= 0:
             print('you don\'t have any stat raises to spend')
             return
@@ -126,6 +113,7 @@ class player(creature):
                 self.get_n_set('health', 25)
                 self.get_n_set('load max', 5)
                 self.get_n_set('attack value', 3)
+                self.get_n_set('poison resist', 2)
                 self.use_stat_raise()
                 if self.stat_raise_used() % 3 == 0:
                     self.level_setter()
@@ -144,6 +132,7 @@ class player(creature):
                 self.stats_setter('int', self.stats_getter('int') + 1)
                 self.get_n_set('mana max', 10)
                 self.get_n_set('mana', 10)
+                self.set_elemental_resists(3)
                 self.use_stat_raise()
                 if self.stat_raise_used() % 3 == 0:
                     self.level_setter()
@@ -151,28 +140,13 @@ class player(creature):
             #print if no valid stat was selected
             case _: 
                 print(f'{stat} is not a valid stat, they "str", "agi", or "int"')
+    raise_stats = ReporterMethod(raise_stats, 'if you are able raise your chosen statistic. syntax: "raise *str* or *agi* or *int*"')
     #level gettets and setters
     def level_getter(self):
         return self.stats_dict['level']
     #level setter defaults to raising the level by one since that is how it will be mostly used.
     def level_setter(self, num = 1):
         self.stats_dict['level'] += num
-    '''# level up function
-    def level_up(self):
-        #check experience
-        if self.experience_getter() >= self.level_getter()**2 * 100:
-            self.experience_setter(0)
-            #award stat raises
-            self.stat_raise_setter(6) ''' 
-            
-    #refresh_active effects. currently used level up to since refreshing vitals os needed to make 
-    # raises effect respective values I can probably  rework my vitals getters and setters and call
-    #them after raising a stat to not have too reset the whole thing, seems wasteful
-    '''def refresh_active(self):
-        if len(self.active_effects) > 0:
-            for value in self.active_effects.values():
-                for key, value1 in value.items():
-                    self.get_n_set(key, value1)'''
     # an occupied setter
     def occupied_setter(self, bool):
         self.occupied = bool
@@ -184,6 +158,7 @@ class player(creature):
             return True
         # if occupied  is false return false
         else: return False
+    #level check function
     def level_check(self, req_level):
         # if player level is less than required level print and return False
         if self.level_getter() < req_level:
@@ -202,7 +177,6 @@ class player(creature):
             return True
         #else return false
         else: return False    
-    #mana check to be used before all mana costing attacks, 
     #makes sure self has mana if it does not returns false.
     async def mana_check_n_set(self, cost):
         # if current mana less than cost, print and return false
@@ -213,7 +187,7 @@ class player(creature):
         else:
             self.get_n_set('mana', cost, True)
             # self occupied to true print and wait casting time
-            self.occupied = True
+            self.occupied_setter(True)
             print('you begin charging an ability')
             await asyncio.sleep(3)
             return True
@@ -303,7 +277,7 @@ class player(creature):
         # return target object
         return target_obj
     # EXPERIMENTAL THE EVERYTHING FUNCTION ALL THE CHECKS AND VALIDATIONS FOR ATTACKS
-    async def ability_prep(self, req_level, cost, default_target = 'target', target_str = None, target_list = None):
+    async def ability_prep(self, req_level, cost, default_target = 'target', target_str = None):
         #check busy and level return false if fails
         if not self.busy_n_level_check(req_level):
             return False
@@ -311,20 +285,24 @@ class player(creature):
         target_obj = None
         # if ability defaults to self, validate target and assign default 
         if default_target == 'self':
-            target_obj = self.validate_default_self(self.location.contents, target_str, target_list)
+            target_obj = self.validate_default_self(self.location.contents, target_str, creature_classes)
         # if ability defaults to self.target, validate target and assign defaukt
         if default_target == 'target':
-            target_obj = self.validate_default_target(self.location.contents, target_str, target_list)
+            target_obj = self.validate_default_target(self.location.contents, target_str, creature_classes)
         #if validate failed or never occured return
         if not target_obj:
             return False
         # check mana, set mana, wait casting time
         mana_check = await self.mana_check_n_set(cost)
-        # if success return target obj
+        # if success return target obj if fails return false
         if mana_check:
             return target_obj
+        else:
+            return False
     # simple target location check, used in abilities after casting delay
     def target_location_check(self, target_obj):
+        if target_obj == False:
+            return False
         if target_obj in self.location.contents or target_obj == self:
             return True
         else: 
@@ -334,28 +312,29 @@ class player(creature):
     async def ability_countdown_timer(self, target, effect_name, seconds):
         await asyncio.sleep(seconds)
         target.remove_active(effect_name)
-        print(f'the {effect_name} wears off {target.name}')
+        print(f'the {effect_name} wears off {self.assign_name(target)}')
+
     #a combat check and set for spells if combat starts with a spell start combat.
     def combat_check_n_set(self, target):
         if self.in_combat == False:
-            self.enter_combat(target)
-    #basic player specific commands
-    def help(self):
-        #print list of basic commands
-        print([x for x in self.basic_action.keys()])
-        #collect input about specific command
-        detail = input("type a command for more details or exit to leave this menu \n")
-        # exit loop if exit
-        if detail == 'exit': return
-        # try to print details about actions
-        try:
-            print(self.basic_action[detail][1])
-        # if unable print so
-        except KeyError:
-            print(f'no help on {detail}')
-        # recurse until user inputs exit
-        return self.help()  
-
+            self.enter_combat(self, target)
+    # a help function to guide players
+    def help(self, target = None):
+        #if no target print lists of basic commands
+        if not target:
+            print('basic actions')
+            print([x for x in self.basic_action.keys()])
+            print('combat and class actions')
+            print([x for x in self.attacks.keys()])
+            print('type "help *action*" for more information on an action')
+            return
+        #if target print method objects with returns custome string assigned via reportermethod or asyncreportermethod
+        if target in [x for x in self.basic_action.keys()]:
+            print(self.basic_action[target])
+        if target in [x for x in self.attacks.keys()]:
+            print(self.attacks[target])
+    help = ReporterMethod(help, 'displays the help menu or details about an action or attack. syntax: "help" or "help *action or attack*"')   
+ 
     # a travel function to move the player requires target.   
     def traverse(self, target=None):
         #check if target string was passes if not return
@@ -383,13 +362,14 @@ class player(creature):
         #print the travel
         print(f'you travel {target}')
         #print the new room
-        self.look()
+        self.look(self)
         #check for aggressive mobs, start combat if true
         for value in self.location.contents:
             if type(value) == creature or type(value).__bases__[0] == creature:
                 if value.aggressive == True:
                     print(f'{value.name} attacks you')
-                    self.enter_combat(value.name) 
+                    self.enter_combat(self, value.name)
+    traverse = ReporterMethod(traverse, 'try to travel in the direction of choice. syntax: "traverse *direction*"')
     # a simple look around or location command
     def look(self):
         #print action and room text
@@ -402,7 +382,7 @@ class player(creature):
         creature_names = [x.name for x in self.location.contents if type(x).__bases__[0] == creature or type(x) == creature]
         #if creature exits format and print, using counter for format
         if len(creature_names) > 0:    
-            print('creaturs')
+            print('creatures')
             creature_counts = Counter(creature_names)
             for npc in creature_counts:
                 if creature_counts[npc] >=2:
@@ -420,7 +400,8 @@ class player(creature):
                 else: print(f'{item}')
         # if gold exisits print
         if self.location.return_gold() > 0:
-            print(f'{self.location.return_gold()} gold coins')      
+            print(f'{self.location.return_gold()} gold coins')
+    look = ReporterMethod(look, 'look around your current room. syntax:"look"')      
     # display active effects function for use within the 'self.me' status check
     def display_active(self):
         #create empy dicts
@@ -441,13 +422,14 @@ class player(creature):
                 display_dict[key] = value
         #if there are any values in armour dict add it to display dict under the 'armour' key
         if len(armour_dict) > 0:
-            display_dict['armour'] = armour_dict
+            display_dict['equipment'] = armour_dict
         #return display dict
         return display_dict
     def me(self):
         #print self, level 
         print(self)
         print(f'level - {self.level_getter()}')
+        print(f'stats: str-{self.stats_getter("str")}, agi-{self.stats_getter("agi")}, int-{self.stats_getter("int")}')
         #print if you can level or how much exp you need to level
         print(f'you have {self.stat_raise_aquired() - self.stat_raise_used()} stat raises to use')
         print(f'you need {(self.stat_raise_aquired() + 1) * 100 - self.experience_getter()} more experience to level up')
@@ -457,11 +439,14 @@ class player(creature):
         print(f'current load, {self.vitals_getter("load")} out of {self.vitals_getter("load max")}')
         #print gold
         print(f'you have {self.return_gold()} gold coins')
+    me = ReporterMethod(me, 'examine your status and your belongings. syntax: "me"')
     # display current equipment function
     def display_equipment(self):
-        print('you current area wearing')
+        print('you are current wearing')
+        #print key and value from equipment dict. should be equipment location for the key and name/effect dict for the value
         for k,v in self.equipment.items():
             print(f'{k} : {v}')
+    display_equipment = ReporterMethod(display_equipment, 'a close look at your equiped items. syntax: "equipment"')
     # display inventory function
     def display_inventory(self):
         print('you are currently holding:')
@@ -471,7 +456,7 @@ class player(creature):
         items_equip = Counter([x.name for x in self.items if type(x) == equipment])
         items_consumables = Counter([x.name for x in self.items if type(x) == consumable])
         items_keys = Counter([x.name for x in self.items if type(x) == key])
-        #print each obj with it's name
+        #print each list, the obejcts and if the count is 2 or more print the count 
         print('equipment:')
         for x in items_equip:
             if items_equip[x] >= 2:
@@ -487,12 +472,13 @@ class player(creature):
             if items_keys[x] >= 2:
                 print(f'{items_keys[x]} {x}s')
             else: print(f'{x}')
-
+    display_inventory = ReporterMethod(display_inventory, 'a close look at everything you are carrying. syntax: "inventory"')
     # an exit for the game loop
     def quit(self):
         self.active = False
         print('so long and thanks for all the fish')
-    #combat target aquisition ends by calling combat loop
+    quit = ReporterMethod(quit, 'quits the game')
+    #enter comabt mthod
     def enter_combat(self, target = None):
         #if no target was passed print and return
         if target == None:
@@ -518,6 +504,7 @@ class player(creature):
         print(f'you attack {target.name}')
         #call combat async function on target
         self.combat(self.target_getter())
+    enter_combat =ReporterMethod(enter_combat, 'attack your target with your basic melee attack. syntax: "attack *target*"')
     # victory check for comabt
     def victory_check(self, target):
         # check targets health is below 0
@@ -546,7 +533,7 @@ class player(creature):
             #add corpse
             self.location.add_item(corpse)
             #start room respawn timer
-            asyncio.create_task(self.location.reswpawn())
+            asyncio.create_task(self.location.respawn())
             #heal mob
             target.vitals_setter('health', target.vitals_getter('health max'))
             #return that victory was achieved
@@ -563,9 +550,9 @@ class player(creature):
                 target.aggressive = False
                 #return True 
                 return True
-    #death event TOMORROW ADD A REFRESH VITALS, LIMITER ON EXPERIENCE SO WE DON'T HAVE NEGATIVE NUMBERS
-    # AND REMOVE ALL EQUIPMENT
+    #death event
     async def death_event(self):
+        #print and wait for the the death event
         print('you fall to the ground and feel consciousness drift from your body')
         await asyncio.sleep(3)
         print('it doesn\'t fade to black though, it\'s that inbetween awake and asleep state')
@@ -584,12 +571,14 @@ class player(creature):
         print('was that real? did you really die? or was it all some kind of dream?')
         print('you don\'t know. But you feel weaker and hurt.') 
         print('you are also naked and some of your money is missing.... crazy times')
-        #reduce level and stats if aplicable
+        #remove all equipment
         for k,v in self.equipment.items(): 
             if v == None:
                 continue
             else:
                 self.equipment[k] = None
+                self.remove_active(k)
+        #reduce stats if applicable
         if self.stat_raise_aquired() >= 1:
             self.add_stat_raise(-1)
         if self.stat_raise_used() >= 1:
@@ -601,14 +590,15 @@ class player(creature):
                     self.stats_setter(stats[index], self.stats_getter(stats[index]) - 1)
                     self.use_stat_raise(-1)
                     count -= 1
+        #reset vitals after stats adjustments
         self.refresh_vitals()
+        #check if level needs to be changed and change level
         if self.level_getter() > (self.stat_raise_used()+3)//3:
             self.level_setter(-1)
         #reduce experience
         self.sub_experience(self.experience_getter()//2)
         #take money
         self.sub_gold(int(self.return_gold()//1.50))
-
         #change location to spawnnode
         self.location = spawnnode
         #inventory or equipment dropping?
@@ -619,26 +609,48 @@ class player(creature):
     async def basic_attack_loop(self, target):
         #while player in is combat
         while self.in_combat == True:
-            #perform a melee attack on target
+            #make sure target is still alive
             if self.victory_check(target):
                 return
-            self.basic_attack(target)
-            #see if target survived
-            #if target died end loop
+            #perform a melee attack on target
+            damage = self.basic_attack(target)
+            if damage <= 0:
+                print(f'you missed {self.assign_name(target)} with your {self.assign_weapon()}')
+            else:
+                print(f'you hit {self.assign_name(target)} for with your {self.assign_weapon()} for {damage} {self.vitals_getter("damage type")} damage')
+            #see if target survived, if target died end loop
             if self.victory_check(target):
                 return
             #target melee attacks me
-            target.basic_attack(self)
-            # 10% chance mob does special attack if it has one
-            special_chance = randint(1, 10)
-            if special_chance == 5 & len(target.special_attacks) > 0:
-                special_list = [x for x in target.special_attacks.keys()]
-                #if target has more than one special attack select random one
-                special_index = randint(0, len(special_list) - 1)
-                # get special attack from list
-                special_attack_str = special_list[special_index]
+            target_dmg = target.basic_attack(self)
+            if target_dmg <= 0:
+                print(f'{self.assign_name(target)} missed you with it\'s {target.assign_weapon()}')
+            else:
+                print(f'{self.assign_name(target)} hit you with it\'s {target.assign_weapon()} for {target_dmg} {target.vitals_getter("damage type")} damage')
+            #see if I died
+            if self.death_check(target):
+                #if so trigger death event
+                await self.death_event()
+                return
+            #check if I have counter attack status
+            if self.vitals_getter('counter attack') == 'active':
+                #if so 'lite' attack targeter
+                amount = self.basic_attack(target, 'lite')
+                print(f'you counter attack for {amount} {self.vitals_getter("damage type")} damage')
+                #check if target died
+                if self.victory_check(target):
+                    return
+            #random number 0 to 9 for special attack. 
+            #currently set up so the number of special attacks corrolate to the percent chance of executing a special attack
+            special_chance = randint(0, 9)
+            special_list = [x for x in target.special_attacks.keys()]
+            try: 
+                special_attack =special_list[special_chance]
+            except IndexError:
+                special_attack = None
                 #attack user with special attack
-                target.special_attacks[special_attack_str](self)
+            if special_attack:    
+                target.special_attacks[special_attack](self)
             #if i died end loop
             if self.death_check(target):
                 await self.death_event()
@@ -651,17 +663,22 @@ class player(creature):
     # a function to assign combat loop as a task to run in the background
     def combat(self, target):
         asyncio.create_task(self.basic_attack_loop(target))
-    # a run function ment for quick exit from combat unique since no target is needed
-    def run(self, target = None):
-        # if no direction passed 
+    #some functions i've commented out. they were unnecessary and not working with my callable object help menu. 
+    # commented out as to not bug anything might reinstate if I can get them working again
+    '''# a run function ment for quick exit from combat unique since no target is needed
+    async def flee(self, target = None):
+        # if no direction passed
+        print('you panic and run')
+        asyncio.sleep(1)
         if target == None:
             # get exits list and assign random exit from list to target
             exit_list = self.location.get_exits()
             target = choice(exit_list)
         # call traverse on target
         self.traverse(target)
+    flee =asyncReporterMethod(flee, 'flee from combat in any available direction. syntax: "run"')'''
     # an end combat command
-    def calm(self, target=None):
+    '''async def calm(self, target=None):
         #validate target if passed, assigns self.target if not. returns bool if validate failed, target object if pass
         target = self.validate_default_target(self.location.contents, target, creature_classes)
         if target:
@@ -677,6 +694,8 @@ class player(creature):
             return
         # flip coin
         chance = randint(0, 1)
+        print(f'you try and calm {target.name}')
+        asyncio.sleep(2)
         # if fail print and return
         if chance == 0:
             print(f'{target.name} fails to calm down')
@@ -690,7 +709,8 @@ class player(creature):
             #print and return
             print(f'{target.name} calms down')
             return
-    # special developers spell to instakill
+    calm = asyncReporterMethod(calm, 'try to calm your current target to end combat. syntax: "calm" or "calm *tagert*"')'''
+    '''# special developers spell to instakill
     def dev_touch(self, target=None):
             #validate target if passed, assign target to self.target if not
             #returns bool if validate failed, target_obj if available, none if not
@@ -704,7 +724,7 @@ class player(creature):
                 return
             # print and instakill target
             print(f'with godlike powers {self.name}, points at {target.name} and says die')
-            target.vitals_setter('health', 0)
+            target.vitals_setter('health', 0)'''
     # examine items function
     def examine(self, target = None):
         #if no target print and return
@@ -732,22 +752,31 @@ class player(creature):
             if target.is_locked == True:
                 print('is locked')
                 return
-            #if not locked print it's content or 'nothing' if empty
+            #if not locked print it's contents or 'nothing' if empty
             print('contains')
+            #logic checks
             check_1 = False
             check_2 = False
+            #if target has items 
             if len(target.contents) > 0:
+                #get item counts
                 item_counts = Counter([x.name for x in target.contents])
+                #print item counts if more than 1 and items
                 for item in item_counts:
                     if item_counts[item] >= 2:
                         print(f'{item_counts[item]} {item}s')
                     else: print(f'{item}')
+                #set check to True
                 check_1 =True
+            #if got in container print amount
             if target.return_gold() > 0:
-                print(f'{target.return_gold} gold coins')
+                print(f'{target.return_gold()} gold coins')
+                #set check to True
                 check_2 = True
+            #if both checks still false print "nothing"
             if check_1 == False and check_2 == False:
                 print('nothing')
+    examine = ReporterMethod(examine, 'look at an item or creature in the room or your inventory. syntax: "examine *target*"')
     # take item function    
     def take_item(self, target = None):
         # if no target passed print and return
@@ -780,10 +809,11 @@ class player(creature):
             #print message
             print(f'you take {target_obj.name}')
             #start respawn timer
-            asyncio.create_task(self.location.reswpawn())
+            asyncio.create_task(self.location.respawn())
         #if target not a takeable item type
         else:
             print('you cannot take that')
+    take_item = ReporterMethod(take_item, 'take an item from the room. syntax: "take *item*"')
     # loot container function
     def loot(self, target = None):
         # if no target passed print and return
@@ -823,6 +853,7 @@ class player(creature):
             target_obj.sub_gold(target_obj.return_gold()) 
         #print when finished
         print(f'you looted {target_obj.name}')
+    loot =ReporterMethod(loot, 'take everything from a corpse or container. syntax: "loot *container*"')
     # drop item function
     def drop(self, target = None):
         #if no target print and return
@@ -851,9 +882,9 @@ class player(creature):
         self.location.add_item(target_obj)
         self.items.remove(target_obj)
         # reduce load by weight. 
-        # I SHOULD MAKE GETTERS AND SETTER FOR WEIGHT OR MOVE IT OVER TO VITALS WHERE MAX ENCUMBRACNE IS STORED
         self.get_n_set('load', target_obj.weight_getter(), True)
         print(f'you drop {target_obj.name}')
+    drop = ReporterMethod(drop, 'drops an item from your inventory. syntax: "drop *item*"')
     # equip item function
     def equip(self, target = None):
         #if target is none print and return
@@ -870,6 +901,7 @@ class player(creature):
                 print(f'you equip {target_obj.name}')
             #if fail print
             else: print(f'you are already wearing a {target_obj.equipment_type}')
+    equip= ReporterMethod(equip, 'equips an item from your inventory. syntax: "equip *item*"')
     #remove item function
     def remove(self, target = None):
         #if target is none print and return
@@ -886,6 +918,7 @@ class player(creature):
                 print(f'you remove {target_obj.name}')
             #if remove failed print
             else: print(f'you are not wearing {target_obj.name}')
+    remove = ReporterMethod(remove, 'remove a worn piece of equipment. syntax: "remove *item*"')
     # use item 
     def use(self, target = None):
         #if no target print and return
@@ -899,7 +932,8 @@ class player(creature):
             target_obj.use()
         #if fail print and return
         else: print('use what?')
-      # a sell item method
+    use = ReporterMethod(use, 'use a potion or item from your inventory. syntax: use *item*')
+    # a sell item method
     def sell_item(self, item_str = None):
         shop = None
         # check is location is a shop, if so assin to shop variable, else print and return
@@ -926,6 +960,7 @@ class player(creature):
             self.get_n_set('load', target_obj.weight_getter(), True)
             shop.add_stock(target_obj)
             print(f'you sold {target_obj} for {target_obj.return_price()}')
+    sell_item = ReporterMethod(sell_item, 'if in a store sell an item to the store. syntax: "sell *item*"')
     # a buy item method
     def buy_item(self, item_str = None):
         shop = None
@@ -960,6 +995,7 @@ class player(creature):
             if not success:
                 print('that item is too heavy so you drop it')
                 shop.add_item(target_obj)
+    buy_item = ReporterMethod(buy_item, 'if in a store purchase an item. syntax: "buy *item*"')
     # search function
     def search(self, target_str = None):
         #if no target print and return
@@ -980,3 +1016,138 @@ class player(creature):
         else:
             self.location.discover(target)
             return
+    search = ReporterMethod(search, 'search parts of the room to find hidden items or pathways. syntax: "search *target*"')
+    #basic damage spell
+    async def nuke(self, level, cost, damage, damage_type, flavor_template, target, flavor_ownership = False):
+        #ability prep validates target, assigns default target if necessary, subtracts mana, and waits casting delay
+        # returns False or target_obj
+        target_obj = await self.ability_prep(level, cost, 'target', target)
+        # checks if target_obj is False or if target object is no longer present
+        if self.target_location_check(target_obj):
+            #format and pring flavor text
+            formatted_string = flavor_template.substitute(name = self.assign_name(target_obj, flavor_ownership), weapon = self.assign_weapon())
+            print(formatted_string)
+            #calculate damage and print
+            final_dmg = self.calc_dmg(target_obj, damage, damage_type)
+            print(f'you deal {final_dmg} of {damage_type} damage to {self.assign_name(target_obj)}')
+            # deal damage to target
+            target_obj.get_n_set('health', final_dmg, True)
+            # check combat and set if necessary
+            self.combat_check_n_set(target_obj)
+        #set occupied to False
+        self.occupied_setter(False)
+    #basic buff spell
+    async def buff(self, level, cost, effect_dict, effect_name, flavor_template, duration, target, flavor_ownership = False):
+        #ability prep validates target, assigns default target if necessary, subtracts mana, and waits casting delay
+        # returns False or target_obj
+        target_obj = await self.ability_prep(level, cost, 'self', target)
+        # checks if target_obj is False or if target object is no longer present
+        if self.target_location_check(target_obj):
+            #format and pring flavor text
+            formatted_string = flavor_template.substitute(name = self.assign_name(target_obj, flavor_ownership), weapon = self.assign_weapon())
+            print(formatted_string)
+            # set spell effects
+            target_obj.set_active(effect_name, effect_dict)
+            #countdown and remove effect task
+            asyncio.create_task(self.ability_countdown_timer(target_obj, effect_name, duration))
+        #set occupied to False
+        self.occupied = False
+    #debuffs must be passed a negative number otherwise they will buff
+    async def debuff(self, level, cost, effect_dict, effect_name, flavor_template, duration, target, flavor_ownership = False):
+        #ability prep validates target, assigns default target if necessary, subtracts mana, and waits casting delay
+        # returns False or target_obj
+        target_obj = await self.ability_prep(level, cost, 'target', target)
+        # checks if target_obj is False or if target object is no longer present
+        if self.target_location_check(target_obj):
+            #format and pring flavor text
+            formatted_string = flavor_template.substitute(name = self.assign_name(target_obj, flavor_ownership), weapon = self.assign_weapon())
+            print(formatted_string)
+            # set spell effects
+            target_obj.set_active(effect_name, effect_dict)
+            #countdown and remove effect task
+            asyncio.create_task(self.ability_countdown_timer(target_obj, effect_name, duration))
+        # set occupied to False
+        self.occupied = False
+    async def multi_nuke(self, level, cost, damage_range, damage_type, rounds, interval, flavor_template, target, flavor_ownership = False):
+        #ability prep validates target, assigns default target if necessary, subtracts mana, and waits casting delay
+        # returns False or target_obj
+        target_obj = await self.ability_prep(level, cost, 'target', target)
+        #loop for rumber of rounds
+        for num in range(rounds):
+            # checks if target_obj is False or if target object is no longer present
+            if self.target_location_check(target_obj):
+                #format and pring flavor text
+                formatted_string = flavor_template.substitute(name = self.assign_name(target_obj, flavor_ownership), weapon = self.assign_weapon())
+                print(formatted_string)
+                #calculate damage and print
+                damage = randint(damage_range[0], damage_range[1])
+                final_dmg = self.calc_dmg(target_obj, damage, damage_type)
+                print(f'you deal {final_dmg} of {damage_type} damage to {self.assign_name(target_obj)}')
+                # deal damage to target
+                target_obj.get_n_set('health', final_dmg, True)
+                #check combat and set if necessary
+                self.combat_check_n_set(target_obj)
+                #wait interval
+                await asyncio.sleep(interval)
+        #set occupied to False
+        self.occupied_setter(False)
+    async def pierce_defense(self, level, cost, damage, damage_type, pierce_float, flavor_template, target, flavor_ownership = False):
+        #ability prep validates target, assigns default target if necessary, subtracts mana, and waits casting delay
+        # returns False or target_obj
+        target_obj = await self.ability_prep(level, cost, 'target', target)
+        # checks if target_obj is False or if target object is no longer present
+        if self.target_location_check(target_obj):
+            #flavor text format and print
+            formatted_string = flavor_template.substitute(name = self.assign_name(target_obj, flavor_ownership), weapon = self.assign_weapon())
+            print(formatted_string)
+            #calculate damage, 
+            final_dmg = self.calc_dmg(target_obj, damage, damage_type)
+            damage_diff = damage - final_dmg
+            #pierce works by taking the difference between final damage and passed damage, multiplying it by percent expressed as a float.
+            #the absolute value of that is then added to the final damage. this way it works even if the target has negative resistance,  
+            pierce_bonus = abs(damage_diff * pierce_float)
+            new_total = final_dmg + round(pierce_bonus)
+            print(f'you deal {new_total} of {damage_type} damage to {self.assign_name(target_obj)}')
+            # deal damage to target
+            target_obj.get_n_set('health', final_dmg, True)
+            #check and set combat status if necessary
+            self.combat_check_n_set(target_obj)
+        #set occuiped to false
+        self.occupied_setter(False)
+    async def heal(self, level, cost, amount, type, flavor_template, target, flavor_ownership = False):
+        #ability prep validates target, assigns default target if necessary, subtracts mana, and waits casting delay
+        # returns False or target_obj
+        target_obj = await self.ability_prep(level, cost, 'self', target)
+        # checks if target_obj is False or if target object is no longer present
+        if self.target_location_check(target_obj):
+            #format and print string
+            formatted_string = flavor_template.substitute(name = self.assign_name(target_obj, flavor_ownership), weapon = self.assign_weapon())
+            print(formatted_string)
+            print(f'{self.assign_name(target_obj)} recover {amount} points of {type}')
+            # heal vital by amount
+            # I left it open ended instead of hard coding health even though the concept of a mana costing spell to recover mana is asinine
+            target_obj.get_n_set(type, amount)
+        #set occupied to false
+        self.occupied_setter(False)
+    async def nuke_n_debuff(self, level, cost, damage, damage_type, effect_name, effect_dict, duration, flavor_template, target, flavor_ownership = False):
+        #ability prep validates target, assigns default target if necessary, subtracts mana, and waits casting delay
+        # returns False or target_obj
+        target_obj = await self.ability_prep(level, cost, 'target', target)
+        # checks if target_obj is False or if target object is no longer present 
+        if self.target_location_check(target_obj):
+            #format and print flavor text
+            formatted_string = flavor_template.substitute(name = self.assign_name(target_obj, flavor_ownership), weapon = self.assign_weapon())
+            print(formatted_string)
+            #calculate damage and print
+            final_dmg = self.calc_dmg(target_obj, damage, damage_type)
+            print(f'you deal {final_dmg} of {damage_type} damage to {self.assign_name(target_obj)}')
+            # deal damage to target
+            target_obj.get_n_set('health', final_dmg, True)
+            # set spell effects
+            target_obj.set_active(effect_name, effect_dict)
+            #countdown and remove effect task
+            asyncio.create_task(self.ability_countdown_timer(target_obj, effect_name, duration))
+            #check and set combat if necessary
+            self.combat_check_n_set(target_obj)
+        #set occupied to false
+        self.occupied = False
