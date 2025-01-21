@@ -1,13 +1,13 @@
 import inspect
 import asyncio
 import shelve
-from player_types import sorcerer
+from player_types import sorcerer, rogue
 from item_classes import container
 import re
 # a basic play game loop
 #a passive self healing heatlh and mana
-player_classes = [sorcerer]
-class_strings = ['sorcerer']
+player_classes = [sorcerer, rogue]
+class_strings = ['sorcerer', 'rogue']
 async def passive_heal(player):
     #while player is active
     while player.active == True:
@@ -37,9 +37,13 @@ def play_game():
         count = 1
         for string in class_strings:
             print(f'{count}, {string}')
+            count += 1
         class_choice = input('what are your abilities? \n')
-        if class_choice == '1' or class_choice == 'sorcerer':
-            character = sorcerer(play_name)
+        match class_choice:
+            case'1' | 'sorcerer':
+                character = sorcerer(play_name)
+            case '2' | 'rogue':
+                character = rogue(play_name)
     character.active = True
     character.refresh_vitals()
     asyncio.run(game_loop(character))
@@ -53,7 +57,7 @@ async def handle_input(queue):
 async def game_loop(player):
     print(f'''you wake up suddenly in a new place and new time.
           with no memories of your past, only your name {player.name}''')
-    player.look()
+    player.look(player)
     #instance async queue
     queue = asyncio.Queue()
     # start passive healing in background
@@ -90,14 +94,14 @@ async def game_loop(player):
             # if target was listed call action with target
             if target:
                 try:
-                    player.basic_action[user_action][0](target)
+                    player.basic_action[user_action](player, target)
                     continue
                 except TypeError:
                     print(f'try just {user_action}')
             # if no target was listed try calling action with no target
             else:
                 try:
-                    player.basic_action[user_action][0]()
+                    player.basic_action[user_action](player)
                 except TypeError:
                     print(f'{user_action} what?')
                     continue
@@ -106,7 +110,7 @@ async def game_loop(player):
             # if target was passed call action with target
             if target:
                 try: 
-                    player.location.room_actions[user_action](target)
+                    player.location.room_actions[user_action](player, target)
                 # error handling might need examining or adjusting
                 except AttributeError:
                     print(f"try just {user_action}")
@@ -118,34 +122,32 @@ async def game_loop(player):
             # if a target was designated
             if target:       
                 #checks if async
-                is_async = inspect.iscoroutinefunction(player.attacks[user_action])
-                # if async add to task list
-                if is_async: 
-                    try:
-                        await asyncio.create_task(player.attacks[user_action](target))
-                    except AttributeError:
-                        print('that target is not here')
+                #is_async = inspect.iscoroutinefunction(player.attacks[user_action])
+                #if async add to task list
+                #if is_async: 
+                asyncio.create_task(player.attacks[user_action](player, target))
+
                 # if not async call action with target
-                else:
-                    try:
-                        player.attacks[user_action](target)
-                    except AttributeError:
-                        print('that target is not here, error handling')
+            #    else:
+             #       try:
+              #          player.attacks[user_action](player, target)
+               #     except AttributeError:
+                #        print('that target is not here, error handling')
             # if no target was selects launch attack anyway
             else:
                 #if code is async handle here
-                is_async = inspect.iscoroutinefunction(player.attacks[user_action])
-                if is_async: 
-                    asyncio.create_task(player.attacks[user_action]())
-                    #except AttributeError:
-                    #   print('that target is not here')
+                #is_async = inspect.iscoroutinefunction(player.attacks[user_action])
+                #if is_async: 
+                    asyncio.create_task(player.attacks[user_action](player))
+                #except AttributeError:
+                #       print('that target is not here')
                 #calls code if sync
-                else:
-                    #try:
-                   player.attacks[user_action]()
-                    #error handling
-                    #except TypeError:
-                    #    print(f'{user_action} what?')
+                #else:
+                #    try:
+                #        player.attacks[user_action](player)
+                #    #error handling
+                #    except TypeError:
+                #        print(f'{user_action} what?')
         else: print('please select an action')
 #proof of concept test functions
 play_game()
